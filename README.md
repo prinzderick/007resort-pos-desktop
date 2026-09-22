@@ -1,6 +1,6 @@
-# otueke-pos-desktop
+# 007resort-pos-desktop
 
-Windows point-of-sale client for the **Otueke Integrated Facility Operations Platform**.
+Windows point-of-sale client for the **007 Resort & Spa Integrated Facility Operations Platform**.
 
 > **Status: Phase 0 — scaffolding only.** Solution structure, API client, device abstractions with
 > simulators, tests and CI. No sales features yet; the architecture is under review.
@@ -8,12 +8,12 @@ Windows point-of-sale client for the **Otueke Integrated Facility Operations Pla
 ## What this is
 
 **One configurable, lightweight POS application** used at every fixed station. It is a **thin
-client of the Otueke API** (`otueke-api`):
+client of the 007 Resort & Spa API** (`007resort-api`):
 
 ```
-POS (this app)  ──HTTP──▶  on-site Otueke API  ──▶  on-site MySQL 8.4
+POS (this app)  ──HTTP──▶  on-site 007 Resort & Spa API  ──▶  on-site MySQL 8.4
                                    │
-                                   └── sync ──▶ Otueke Cloud
+                                   └── sync ──▶ 007 Resort & Spa Cloud
 ```
 
 - **No local database.** The POS never talks to MySQL and holds no master data.
@@ -45,14 +45,14 @@ All ten run the same build; they differ only by registration and API-provided co
 ## Repository layout
 
 ```
-Otueke.Pos.sln
+R007.Pos.sln
 src/
-  Otueke.Pos.App/      WPF shell (net10.0-windows) — composition root, screens
-  Otueke.Pos.Core/     API client, offline-queue contract, terminal context, options (net10.0)
-  Otueke.Pos.Devices/  Hardware abstractions + simulators: printer (80mm ESC/POS), NFC, scanner,
+  R007.Pos.App/      WPF shell (net10.0-windows) — composition root, screens
+  R007.Pos.Core/     API client, offline-queue contract, terminal context, options (net10.0)
+  R007.Pos.Devices/  Hardware abstractions + simulators: printer (80mm ESC/POS), NFC, scanner,
                        cash drawer, customer display (net10.0, no vendor SDKs)
 tests/
-  Otueke.Pos.Tests/    xUnit tests (API client via fake HttpMessageHandler, simulated devices)
+  R007.Pos.Tests/    xUnit tests (API client via fake HttpMessageHandler, simulated devices)
 docs/configuration.md  Configuration template and keys
 ```
 
@@ -61,14 +61,14 @@ docs/configuration.md  Configuration template and keys
 - .NET 10 SDK (pinned in `global.json`)
 - Windows 10/11 to run the WPF app. Core/Devices/Tests build and run on macOS/Linux; the WPF
   project also compiles there thanks to `EnableWindowsTargeting`, but can only run on Windows.
-- A running `otueke-api` (default `http://localhost:5080`) — see that repo's README.
+- A running `007resort-api` (default `http://localhost:5080`) — see that repo's README.
 
 ## Build, run, test
 
 ```bash
-dotnet build Otueke.Pos.sln
-dotnet test Otueke.Pos.sln
-dotnet run --project src/Otueke.Pos.App        # Windows only
+dotnet build R007.Pos.sln
+dotnet test R007.Pos.sln
+dotnet run --project src/R007.Pos.App        # Windows only
 ```
 
 CI (`.github/workflows/ci.yml`) builds and tests the whole solution on `windows-latest` and runs a
@@ -81,4 +81,4 @@ See [docs/configuration.md](docs/configuration.md). No secrets are stored in con
 ## Conventions
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Platform architecture and ADRs:
-[prinzderick/otueke-docs](https://github.com/prinzderick/otueke-docs).
+[prinzderick/007resort-docs](https://github.com/prinzderick/007resort-docs).

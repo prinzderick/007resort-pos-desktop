@@ -1,4 +1,4 @@
-# Contributing to otueke-pos-desktop
+# Contributing to 007resort-pos-desktop
 
 ## Workflow
 
@@ -16,9 +16,9 @@
   queue and OS-protected device credentials.
 - **One app for all stations.** Never branch on station names; use the capabilities/permissions the
   API returns for the registered device, facility, operating point and staff member.
-- **Hardware via abstractions.** Use `Otueke.Pos.Devices` interfaces; vendor drivers live in
+- **Hardware via abstractions.** Use `R007.Pos.Devices` interfaces; vendor drivers live in
   separate adapters. Every device has a `Simulated*` implementation for dev/test.
-- Keep `Otueke.Pos.Core` free of WPF so it stays unit-testable on any OS.
+- Keep `R007.Pos.Core` free of WPF so it stays unit-testable on any OS.
 
 ## Data rules
 
@@ -44,5 +44,5 @@ entries are surfaced to staff, never silently dropped.
 
 ## Testing
 
-- Unit-test Core logic and device simulators (`tests/Otueke.Pos.Tests`).
+- Unit-test Core logic and device simulators (`tests/R007.Pos.Tests`).
 - Use a fake `HttpMessageHandler` for API client tests — no live API calls in unit tests.
