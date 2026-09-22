@@ -1,0 +1,15 @@
+<Project>
+  <!-- TargetFramework is set per project: net10.0 for libraries/tests, net10.0-windows for the WPF app. -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Deterministic>true</Deterministic>
+    <Company>Otueke</Company>
+    <Product>Otueke POS</Product>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+</Project>
