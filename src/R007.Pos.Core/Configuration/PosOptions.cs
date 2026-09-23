@@ -30,6 +30,18 @@ public sealed class PosOptions
 
     /// <summary>Max gap (ms) between characters for keyboard-wedge input (NFC/barcode) to count as a scan, not typing.</summary>
     public int WedgeMaxKeyIntervalMs { get; set; } = 50;
+
+    /// <summary>
+    /// Fixed sensitive stations require an NFC card <b>and</b> a PIN (architecture/06 §4); NFC alone never suffices there.
+    /// The contract has no operating rule for this yet, so it is local configuration (flagged as a contract gap).
+    /// </summary>
+    public bool RequireNfcAndPin { get; set; }
+
+    /// <summary>Lock (sign out) after this many idle minutes; 0 disables. Fixed tills should not stay signed in unattended.</summary>
+    public int IdleLockMinutes { get; set; } = 15;
+
+    /// <summary>Quick-add notes offered on order lines (the contract has no modifier model, only free-text line notes).</summary>
+    public List<string> QuickNotes { get; set; } = ["No ice", "Extra spicy", "Well done", "Takeaway"];
 }
 
 /// <summary>Suggested defaults for enrolment. Credentials issued by the API are stored DPAPI-protected, never here.</summary>

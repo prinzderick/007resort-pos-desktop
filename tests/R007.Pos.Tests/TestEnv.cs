@@ -27,13 +27,15 @@ public sealed class TestEnv : IDisposable
             Server,
             Auth,
             Connectivity,
-            new Uri("http://mock.local/"),
+            Endpoint,
             TimeSpan.FromSeconds(5),
             retry ?? new RetryOptions { MaxRetries = 3, BaseDelay = TimeSpan.FromMilliseconds(1), MaxDelay = TimeSpan.FromMilliseconds(2) },
             Time,
             (_, _) => Task.CompletedTask);
         Api = new R007ApiClient(Http);
     }
+
+    public ServerEndpoint Endpoint { get; } = new(new Uri("http://mock.local/"));
 
     public ManualTimeProvider Time { get; }
 

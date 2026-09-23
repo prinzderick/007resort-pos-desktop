@@ -31,6 +31,10 @@ public enum ReceiptAlignment
     Right,
 }
 
-public sealed record ReceiptLine(string Text, ReceiptAlignment Alignment = ReceiptAlignment.Left, bool Bold = false);
+public sealed record ReceiptLine(string Text, ReceiptAlignment Alignment = ReceiptAlignment.Left, bool Bold = false, bool DoubleSize = false);
 
-public sealed record ReceiptDocument(IReadOnlyList<ReceiptLine> Lines, bool CutPaper = true);
+/// <param name="Lines">Text lines (already laid out for the paper width by the caller).</param>
+/// <param name="CutPaper">Feed and cut after printing.</param>
+/// <param name="QrData">Optional QR code printed centred after the lines (entitlement / ticket).</param>
+/// <param name="OpenDrawer">Kick the cash drawer (cash tender).</param>
+public sealed record ReceiptDocument(IReadOnlyList<ReceiptLine> Lines, bool CutPaper = true, string? QrData = null, bool OpenDrawer = false);
