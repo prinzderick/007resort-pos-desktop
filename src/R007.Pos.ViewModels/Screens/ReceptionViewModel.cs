@@ -227,14 +227,28 @@ public sealed class ReceptionViewModel : ScreenViewModel
         }
     }
 
+    /// <summary>
+    /// Hold the slot, then build the paying order the way the node expects: the resource's slot-fee product (per slot, or per seat for
+    /// capacity resources) goes on a counter order which is attached to the booking (<c>POST /bookings/{id}/order</c>). Rentals and goods
+    /// are further lines on that same order; paying it confirms the booking.
+    /// </summary>
     private async Task HoldAsync()
     {
         Error = null;
+        var resource = Resource!;
+        if (resource.ProductId is not { } feeProduct)
+        {
+            Error = $"{resource.Name} has no price configured (no slot-fee product). Ask IT to set it up.";
+            return;
+        }
+
+        var perSeat = resource.Mode == "INDIVIDUAL_CAPACITY";
         var name = string.IsNullOrWhiteSpace(CustomerName) ? "Walk-in" : CustomerName.Trim();
-        var request = new HoldRequest(Resource!.Id, Slot!.Slot.Start, Slot.Slot.End, PartySize, new CustomerInput(name, null, null, Member?.Id));
+        var request = new HoldRequest(resource.Id, Slot!.Slot.Start, Slot.Slot.End, perSeat ? PartySize : null, new CustomerInput(name, null, null, Member?.Id));
+        Booking held;
         try
         {
-            Booking = await _ctx.Api.HoldBookingAsync(request, IdempotencyKeys.New()).ConfigureAwait(true);
+            held = await _ctx.Api.HoldBookingAsync(request, IdempotencyKeys.New()).ConfigureAwait(true);
         }
         catch (ApiException ex) when (ex.Code == "slot_unavailable")
         {
@@ -248,8 +262,35 @@ public sealed class ReceptionViewModel : ScreenViewModel
             return;
         }
 
+        try
+        {
+            var line = new OrderLineInput(feeProduct, perSeat ? PartySize : 1, null, ClientIds.New(), _ctx.Time.GetUtcNow());
+            var order = await _ctx.Api.CreateOrderAsync(new CreateOrderRequest(_ctx.FacilityId, null, null, OrderChannels.Counter, name, [line], ClientIds.New(), _ctx.Time.GetUtcNow()), IdempotencyKeys.New()).ConfigureAwait(true);
+            Booking = await _ctx.Api.AttachBookingOrderAsync(held.Id, held.RowVersion, order.Id, IdempotencyKeys.New()).ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is ApiException or ApiUnavailableException)
+        {
+            // Never leave a slot held for nothing.
+            await TryReleaseAsync(held).ConfigureAwait(true);
+            Error = Describe(ex);
+            return;
+        }
+
         await RefreshBalanceAsync().ConfigureAwait(true);
         Info = "Slot held. Add rentals if needed, then take payment before the hold expires.";
+    }
+
+    private async Task TryReleaseAsync(Booking held)
+    {
+        try
+        {
+            var fresh = await _ctx.Api.GetBookingAsync(held.Id).ConfigureAwait(true);
+            await _ctx.Api.CancelBookingAsync(held.Id, fresh.RowVersion, new CancelBookingRequest("Order could not be created"), IdempotencyKeys.New()).ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is ApiException or ApiUnavailableException)
+        {
+            // The hold simply expires on its own.
+        }
     }
 
     private async Task RefreshBalanceAsync()
@@ -260,7 +301,7 @@ public sealed class ReceptionViewModel : ScreenViewModel
         }
         else if (Booking is not null)
         {
-            _balanceDue = Booking.Total - Booking.AmountPaid;
+            _balanceDue = Booking.Total - Booking.AmountPaid; // only until the order is attached
         }
 
         OnPropertyChanged(nameof(BookingText));

@@ -53,6 +53,26 @@ public sealed partial class MockApiHandler
             return Confirm(booking, Read(body, Ctx.ConfirmBookingRequest), caller);
         }
 
+        // Reception flow like the node: hold (no order yet) -> POST /orders (slot fee + rentals) -> attach here -> pay the order.
+        if (method == "POST" && Match(seg, "bookings/{}/order", out a))
+        {
+            Need(caller, Permissions.BookingCreate);
+            var booking = GetBooking(a[0]);
+            CheckIfMatchBooking(request, booking);
+            var orderId = Read(body, Ctx.AttachOrderRequest).OrderId;
+            var order = _orders.GetValueOrDefault(orderId) ?? throw new MockProblem(404, "not_found", "Order not found");
+            if (booking.Status != BookingStatuses.Held || booking.HoldExpiresAt <= Now)
+            {
+                throw new MockProblem(409, "hold_expired", "The hold is no longer active");
+            }
+
+            booking.OrderId = order.Id;
+            booking.Status = BookingStatuses.PendingPayment;
+            booking.RowVersion++;
+            order.BookingId = booking.Id;
+            return Json(200, ToDto(booking), Ctx.Booking);
+        }
+
         if (method == "POST" && Match(seg, "bookings/{}/cancel", out a))
         {
             Need(caller, Permissions.BookingCreate);
@@ -65,7 +85,11 @@ public sealed partial class MockApiHandler
 
             booking.Status = BookingStatuses.Cancelled;
             booking.RowVersion++;
-            _orders[booking.OrderId].Status = OrderStatuses.Voided;
+            if (booking.OrderId is { } attached)
+            {
+                _orders[attached].Status = OrderStatuses.Voided;
+            }
+
             return Json(200, ToDto(booking), Ctx.Booking);
         }
 
@@ -85,6 +109,15 @@ public sealed partial class MockApiHandler
             }
 
             return Json(201, IssueEntitlement(order, null), Ctx.Entitlement);
+        }
+
+        if (method == "GET" && Match(seg, "entitlements", out _))
+        {
+            Need(caller, Permissions.TicketIssue);
+            query.TryGetValue("filter[orderId]", out var byOrder);
+            query.TryGetValue("filter[bookingId]", out var byBooking);
+            var found = _entitlements.Values.Where(e => (byOrder is null || e.OrderId == G(byOrder)) && (byBooking is null || e.BookingId == G(byBooking))).ToList();
+            return Json(200, new Page<Entitlement>(found, null), Ctx.PageEntitlement);
         }
 
         if (method == "GET" && Match(seg, "entitlements/{}", out a))
@@ -108,9 +141,10 @@ public sealed partial class MockApiHandler
 
     private Booking ToDto(MBooking b)
     {
-        var order = ToDto(_orders[b.OrderId]);
-        var status = b.Status == BookingStatuses.Held && b.HoldExpiresAt <= Now ? BookingStatuses.Expired : b.Status;
-        return new Booking(b.Id, b.Number, b.Resource.Id, b.Resource.Name, b.Resource.FacilityId, b.Start, b.End, b.Quantity, status, b.HoldExpiresAt, order.Total, order.AmountPaid, b.OrderId, b.EntitlementId, b.RowVersion);
+        // Like the node: the booking's own total is the slot fee; rentals live on the attached order.
+        var fee = b.Resource.Mode == "INDIVIDUAL_CAPACITY" ? b.Resource.Price * b.Quantity : b.Resource.Price;
+        var status = b.Status is BookingStatuses.Held or BookingStatuses.PendingPayment && b.HoldExpiresAt <= Now ? BookingStatuses.Expired : b.Status;
+        return new Booking(b.Id, b.Number, b.Resource.Id, b.Resource.Name, b.Resource.FacilityId, b.Start, b.End, b.Quantity, status, b.HoldExpiresAt, fee, b.Status == BookingStatuses.Confirmed ? fee : 0m, b.OrderId, b.EntitlementId, b.RowVersion);
     }
 
     private HttpResponseMessage Hold(HoldRequest req, Caller caller)
@@ -123,27 +157,6 @@ public sealed partial class MockApiHandler
             throw new MockProblem(409, "slot_unavailable", "That slot was just taken");
         }
 
-        var order = new MOrder
-        {
-            Id = Guid.CreateVersion7(),
-            Number = $"REC-{(++_orderSeq).ToString("000000", CultureInfo.InvariantCulture)}",
-            FacilityId = MockData.ReceptionFacilityId,
-            Channel = OrderChannels.Counter,
-            CustomerName = req.Customer?.Name,
-            CreatedAt = Now,
-            CreatedBy = caller.Staff.Id,
-        };
-        order.Lines.Add(new MLine
-        {
-            Id = Guid.CreateVersion7(),
-            ProductId = resource.ProductId ?? Guid.Empty,
-            Name = $"{resource.Name} {req.Start:HH:mm}-{req.End:HH:mm}",
-            Quantity = resource.Mode == "INDIVIDUAL_CAPACITY" ? quantity : 1,
-            BaseUnitPrice = resource.Price,
-            Kind = ProductKinds.Ticket,
-        });
-        _orders[order.Id] = order;
-
         var booking = new MBooking
         {
             Id = Guid.CreateVersion7(),
@@ -153,9 +166,7 @@ public sealed partial class MockApiHandler
             End = req.End,
             Quantity = quantity,
             HoldExpiresAt = Now.AddSeconds(300),
-            OrderId = order.Id,
         };
-        order.BookingId = booking.Id;
         _bookings[booking.Id] = booking;
         return Json(201, ToDto(booking), Ctx.Booking);
     }
@@ -167,7 +178,7 @@ public sealed partial class MockApiHandler
             return Json(200, ToDto(booking), Ctx.Booking);
         }
 
-        if (booking.Status != BookingStatuses.Held)
+        if (booking.Status is not (BookingStatuses.Held or BookingStatuses.PendingPayment))
         {
             throw new MockProblem(409, "order_state_invalid", "Booking cannot be confirmed");
         }
@@ -178,13 +189,48 @@ public sealed partial class MockApiHandler
         }
 
         Need(caller, Permissions.PaymentTake);
-        var order = _orders[booking.OrderId];
+        var order = booking.OrderId is { } attached ? _orders[attached] : NewSlotFeeOrder(booking, caller);
         var balance = ToDto(order).BalanceDue;
-        ApplyPayment(caller, MockData.ReceptionFacilityId, [(order, balance)], req.Tenders ?? [], req.CashSessionId);
-        booking.Status = BookingStatuses.Confirmed;
-        booking.RowVersion++;
-        booking.EntitlementId = IssueEntitlement(order, booking).Id;
+        ApplyPayment(caller, MockData.ReceptionFacilityId, [(order, balance)], req.Tenders ?? [], req.CashSessionId); // confirms the booking (see ConfirmBookingsForPaid)
         return Json(200, ToDto(booking), Ctx.Booking);
+    }
+
+    private MOrder NewSlotFeeOrder(MBooking booking, Caller caller)
+    {
+        var product = MockData.Products.First(p => p.Id == booking.Resource.ProductId);
+        var order = new MOrder
+        {
+            Id = Guid.CreateVersion7(),
+            Number = $"REC-{(++_orderSeq).ToString("000000", CultureInfo.InvariantCulture)}",
+            FacilityId = MockData.ReceptionFacilityId,
+            Channel = OrderChannels.Counter,
+            CreatedAt = Now,
+            CreatedBy = caller.Staff.Id,
+            BookingId = booking.Id,
+        };
+        order.Lines.Add(new MLine { Id = Guid.CreateVersion7(), ProductId = product.Id, Name = product.Name, Quantity = booking.Resource.Mode == "INDIVIDUAL_CAPACITY" ? booking.Quantity : 1, BaseUnitPrice = product.Price, Kind = product.Kind });
+        _orders[order.Id] = order;
+        booking.OrderId = order.Id;
+        return order;
+    }
+
+    /// <summary>Paying the attached order in full confirms the booking and issues the QR entitlement (the node does this inside the payment transaction).</summary>
+    private void ConfirmBookingsForPaid(IEnumerable<MOrder> orders)
+    {
+        foreach (var order in orders)
+        {
+            if (order.BookingId is { } id && _bookings.TryGetValue(id, out var booking) && booking.Status is BookingStatuses.Held or BookingStatuses.PendingPayment && ToDto(order).BalanceDue <= 0m)
+            {
+                if (booking.HoldExpiresAt <= Now)
+                {
+                    throw new MockProblem(409, "hold_expired", "The hold expired; start again");
+                }
+
+                booking.Status = BookingStatuses.Confirmed;
+                booking.RowVersion++;
+                booking.EntitlementId = IssueEntitlement(order, booking).Id;
+            }
+        }
     }
 
     private Entitlement IssueEntitlement(MOrder order, MBooking? booking)

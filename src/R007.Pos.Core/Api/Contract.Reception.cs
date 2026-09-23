@@ -62,3 +62,6 @@ public sealed record Entitlement(
     IReadOnlyList<Guid>? GroupEntitlementIds = null);
 
 public sealed record IssueEntitlementRequest(Guid? OrderId = null, Guid? BookingId = null);
+
+/// <summary><c>POST /bookings/{id}/order</c>: attach the order (slot fee + rentals + goods) that will pay for the hold.</summary>
+public sealed record AttachOrderRequest(Guid OrderId);

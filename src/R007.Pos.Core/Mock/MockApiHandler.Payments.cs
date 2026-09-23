@@ -319,6 +319,8 @@ public sealed partial class MockApiHandler
             SettleIfPaid(order);
         }
 
+        ConfirmBookingsForPaid(touched);
+
         var receipt = BuildReceipt(caller, facilityId, touched, payments);
         foreach (var p in payments)
         {

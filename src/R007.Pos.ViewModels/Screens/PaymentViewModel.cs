@@ -27,7 +27,10 @@ public sealed record PaymentTarget(
     public static PaymentTarget ForTab(Tab t, string label) =>
         new(t.FacilityId, null, t.Id, label, t.BalanceDue, t.Currency ?? "NGN", false, false, true);
 
-    /// <summary>A held booking (plus any rentals on its order): paid in full through <c>POST /bookings/{id}/confirm</c>.</summary>
+    /// <summary>
+    /// A held booking whose paying order (slot fee + rentals) is attached: the order is paid through <c>POST /payments</c>; the node
+    /// confirms the booking and issues the QR inside that payment. (<c>/bookings/{id}/confirm</c> returns neither receipt nor change.)
+    /// </summary>
     public static PaymentTarget ForBooking(Booking b, Guid facilityId, decimal balanceDue) =>
         new(facilityId, b.OrderId, null, $"Booking {b.Number}", balanceDue, "NGN", false, false, true, b);
 }
@@ -350,12 +353,6 @@ public sealed class PaymentViewModel : ModalViewModel
         try
         {
             var request = BuildRequest(attempt, amountToPay);
-            if (_target.Booking is { } booking)
-            {
-                await ConfirmBookingAsync(booking, request, attempt.Key).ConfigureAwait(true);
-                return;
-            }
-
             PaymentResult result;
             try
             {
@@ -363,7 +360,7 @@ public sealed class PaymentViewModel : ModalViewModel
                     ? await _ctx.Api.SettleTabAsync(tabId, new SettleTabRequest(request.Tenders, request.CashSessionId), attempt.Key).ConfigureAwait(true)
                     : await _ctx.Api.CreatePaymentAsync(request, attempt.Key).ConfigureAwait(true);
             }
-            catch (ApiUnavailableException) when (_target.OrderId is not null && Tenders.All(t => t.Method == TenderTypes.Cash))
+            catch (ApiUnavailableException) when (_target.OrderId is not null && _target.Booking is null && Tenders.All(t => t.Method == TenderTypes.Cash))
             {
                 await QueueCashAsync(request, attempt.Key).ConfigureAwait(true);
                 return;
@@ -377,8 +374,19 @@ public sealed class PaymentViewModel : ModalViewModel
             Result = result;
             Paid = true;
             ChangeText = result.ChangeDue is { } change and > 0m ? "Change due: " + MoneyFormat.Display(change) : null;
-            PrintMessage = (await _ctx.Printing.PrintReceiptAsync(result.ReceiptId).ConfigureAwait(true)).Message;
-            await IssueTicketsIfNeededAsync().ConfigureAwait(true);
+            if (_target.Booking is { } booking)
+            {
+                await FinishBookingAsync(booking, result).ConfigureAwait(true);
+            }
+            else
+            {
+                // Tickets/rentals: the receipt is printed once, WITH the QR (or followed by one slip per ticket). Otherwise a plain receipt.
+                if (!await IssueTicketsIfNeededAsync().ConfigureAwait(true))
+                {
+                    PrintMessage = (await _ctx.Printing.PrintReceiptAsync(result.ReceiptId).ConfigureAwait(true)).Message;
+                }
+            }
+
             OnPropertyChanged(nameof(Paid));
             OnPropertyChanged(nameof(ChangeText));
             OnPropertyChanged(nameof(PrintMessage));
@@ -401,48 +409,34 @@ public sealed class PaymentViewModel : ModalViewModel
         }
     }
 
-    /// <summary>Booking payment is never queued offline: a hold is a scarce resource and must be confirmed live.</summary>
-    private async Task ConfirmBookingAsync(Booking held, CreatePaymentRequest request, string key)
+    /// <summary>
+    /// The booking order was paid: the node has confirmed the booking and issued its QR entitlement (slot access + rentals). Print the
+    /// receipt with that QR. Booking payment is never queued offline: a hold is scarce and must be confirmed live.
+    /// </summary>
+    private async Task FinishBookingAsync(Booking held, PaymentResult result)
     {
-        try
+        var booking = await _ctx.Api.GetBookingAsync(held.Id).ConfigureAwait(true);
+        ConfirmedBooking = booking;
+        if (booking.EntitlementId is not { } entitlementId)
         {
-            var fresh = await _ctx.Api.GetBookingAsync(held.Id).ConfigureAwait(true);
-            var booking = await _ctx.Api.ConfirmBookingAsync(held.Id, fresh.RowVersion, new ConfirmBookingRequest(request.Tenders, request.CashSessionId), key).ConfigureAwait(true);
-            Paid = true;
-            if (booking.EntitlementId is { } entitlementId)
-            {
-                var entitlement = await _ctx.Api.GetEntitlementAsync(entitlementId).ConfigureAwait(true);
-                EntitlementQr = entitlement.QrToken;
-                var printed = booking.OrderId is { } orderId
-                    ? await _ctx.Printing.PrintOrderReceiptAsync(orderId, entitlement.QrToken).ConfigureAwait(true)
-                    : await _ctx.Printing.PrintAsync(TicketOnlyDocument(booking, entitlement)).ConfigureAwait(true);
-                PrintMessage = "QR entitlement receipt: " + printed.Message;
-            }
-            else
-            {
-                PrintMessage = "Booking confirmed, but no entitlement was returned. Check the booking.";
-            }
+            PrintMessage = (await _ctx.Printing.PrintReceiptAsync(result.ReceiptId).ConfigureAwait(true)).Message + " Booking not confirmed yet: check the booking.";
+            return;
+        }
 
-            ConfirmedBooking = booking;
-            OnPropertyChanged(nameof(Paid));
-            OnPropertyChanged(nameof(PrintMessage));
-            OnPropertyChanged(nameof(EntitlementQr));
-            Info = "Booking confirmed and paid.";
-        }
-        catch (ApiUnavailableException)
-        {
-            Error = "The server is unreachable. Bookings must be confirmed live (the slot is only held for a few minutes): try again when the connection returns.";
-        }
+        var entitlement = await _ctx.Api.GetEntitlementAsync(entitlementId).ConfigureAwait(true);
+        EntitlementQr = entitlement.QrToken;
+        var printed = await _ctx.Printing.PrintReceiptAsync(result.ReceiptId, false, entitlement.QrToken).ConfigureAwait(true);
+        PrintMessage = "QR entitlement receipt: " + printed.Message;
+        OnPropertyChanged(nameof(EntitlementQr));
     }
 
-    /// <summary>Fallback ticket when the API has no receipt for the booking: reference, slot and QR only (no amounts).</summary>
-    private static R007.Pos.Devices.Printing.ReceiptDocument TicketOnlyDocument(Booking b, Entitlement e) =>
+    /// <summary>One slip per QR ticket (an order of 5 individual pool tickets has 5 entitlements, each scanned separately).</summary>
+    internal static R007.Pos.Devices.Printing.ReceiptDocument TicketSlip(Entitlement e, string? facilityName) =>
         new(
             [
                 new R007.Pos.Devices.Printing.ReceiptLine("007 Resort & Spa", R007.Pos.Devices.Printing.ReceiptAlignment.Center, true),
-                new R007.Pos.Devices.Printing.ReceiptLine($"Booking {b.Number}", R007.Pos.Devices.Printing.ReceiptAlignment.Center),
-                new R007.Pos.Devices.Printing.ReceiptLine($"{b.ResourceName} {b.Start:dd/MM HH:mm}-{b.End:HH:mm}", R007.Pos.Devices.Printing.ReceiptAlignment.Center),
-                .. e.Items.Select(i => new R007.Pos.Devices.Printing.ReceiptLine($"{i.Quantity} x {i.Name}")),
+                .. e.Items.Select(i => new R007.Pos.Devices.Printing.ReceiptLine($"{i.Quantity} x {i.Name}", R007.Pos.Devices.Printing.ReceiptAlignment.Center)),
+                new R007.Pos.Devices.Printing.ReceiptLine("Scan at the gate. One use per ticket.", R007.Pos.Devices.Printing.ReceiptAlignment.Center),
             ],
             true,
             e.QrToken);
@@ -450,6 +444,9 @@ public sealed class PaymentViewModel : ModalViewModel
     public Booking? ConfirmedBooking { get; private set; }
 
     public string? EntitlementQr { get; private set; }
+
+    /// <summary>Every QR entitlement issued for this payment (one per individual ticket).</summary>
+    public IReadOnlyList<Entitlement> Entitlements { get; private set; } = [];
 
     private async Task QueueCashAsync(CreatePaymentRequest request, string key)
     {
@@ -469,31 +466,64 @@ public sealed class PaymentViewModel : ModalViewModel
         }
     }
 
-    /// <summary>Reception: paying for tickets/rentals also issues the QR entitlement and prints it on the receipt.</summary>
-    private async Task IssueTicketsIfNeededAsync()
+    /// <summary>
+    /// Reception: paying for tickets/rentals yields QR entitlements. The node issues them itself once the order is paid in full
+    /// (a PAY_FIRST order stays DRAFT, so "paid" means balance 0, not SETTLED); <c>POST /entitlements</c> is the idempotent fallback.
+    /// One QR per individual ticket: a single QR rides on the receipt, several print as separate slips.
+    /// </summary>
+    private async Task<bool> IssueTicketsIfNeededAsync()
     {
         if (_target.OrderId is not { } orderId || !_ctx.Features.CanIssueTickets || Result is null)
         {
-            return;
+            return false;
         }
 
         try
         {
             var order = await _ctx.Api.GetOrderAsync(orderId).ConfigureAwait(true);
-            var sellsEntitlements = order.Status == OrderStatuses.Settled
+            var sellsEntitlements = order.BalanceDue <= 0m
+                && order.AmountPaid > 0m
                 && order.Lines.Any(l => _ctx.Products.Any(p => p.Id == l.ProductId && p.Kind is ProductKinds.Ticket or ProductKinds.Rental));
             if (!sellsEntitlements)
             {
-                return;
+                return false;
             }
 
-            var entitlement = await _ctx.Api.IssueEntitlementAsync(new IssueEntitlementRequest(orderId), IdempotencyKeys.New()).ConfigureAwait(true);
-            var printed = await _ctx.Printing.PrintReceiptAsync(Result.ReceiptId, false, entitlement.QrToken).ConfigureAwait(true);
-            PrintMessage = "QR entitlement receipt: " + printed.Message;
+            var entitlements = await _ctx.Api.ListEntitlementsAsync(orderId).ConfigureAwait(true);
+            if (entitlements.Count == 0)
+            {
+                await _ctx.Api.IssueEntitlementAsync(new IssueEntitlementRequest(orderId), IdempotencyKeys.New()).ConfigureAwait(true);
+                entitlements = await _ctx.Api.ListEntitlementsAsync(orderId).ConfigureAwait(true);
+            }
+
+            if (entitlements.Count == 0)
+            {
+                return false;
+            }
+
+            Entitlements = entitlements;
+            EntitlementQr = entitlements[0].QrToken;
+            var printed = await _ctx.Printing.PrintReceiptAsync(Result.ReceiptId, false, entitlements.Count == 1 ? entitlements[0].QrToken : null).ConfigureAwait(true);
+            var slips = 0;
+            if (entitlements.Count > 1)
+            {
+                foreach (var e in entitlements)
+                {
+                    slips += (await _ctx.Printing.PrintAsync(TicketSlip(e, _ctx.FacilityName)).ConfigureAwait(true)).Printed ? 1 : 0;
+                }
+            }
+
+            PrintMessage = entitlements.Count == 1
+                ? "QR entitlement receipt: " + printed.Message
+                : $"Receipt: {printed.Message} {slips} of {entitlements.Count} ticket QR slips printed.";
+            OnPropertyChanged(nameof(EntitlementQr));
+            OnPropertyChanged(nameof(Entitlements));
+            return true;
         }
         catch (Exception ex) when (ex is ApiException or ApiUnavailableException)
         {
             PrintMessage = "Payment taken, but the ticket QR could not be issued: " + Describe(ex) + " Reissue it from History.";
+            return false;
         }
     }
 

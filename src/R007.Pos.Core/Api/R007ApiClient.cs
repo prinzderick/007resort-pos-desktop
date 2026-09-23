@@ -266,6 +266,25 @@ public sealed class R007ApiClient(HttpClient httpClient) : IR007ApiClient
     public Task<Entitlement> IssueEntitlementAsync(IssueEntitlementRequest request, string idempotencyKey, CancellationToken cancellationToken = default) =>
         SendAsync(HttpMethod.Post, "api/v1/entitlements", request, Ctx.IssueEntitlementRequest, Ctx.Entitlement, idempotencyKey, cancellationToken: cancellationToken);
 
+    public Task<IReadOnlyList<Entitlement>> ListEntitlementsAsync(Guid? orderId = null, Guid? bookingId = null, CancellationToken cancellationToken = default)
+    {
+        var path = "api/v1/entitlements?limit=50";
+        if (orderId is { } o)
+        {
+            path += $"&filter[orderId]={Id(o)}";
+        }
+
+        if (bookingId is { } b)
+        {
+            path += $"&filter[bookingId]={Id(b)}";
+        }
+
+        return GetAllAsync(path, Ctx.PageEntitlement, cancellationToken);
+    }
+
+    public Task<Booking> AttachBookingOrderAsync(Guid bookingId, int rowVersion, Guid orderId, string idempotencyKey, CancellationToken cancellationToken = default) =>
+        SendAsync(HttpMethod.Post, $"api/v1/bookings/{Id(bookingId)}/order", new AttachOrderRequest(orderId), Ctx.AttachOrderRequest, Ctx.Booking, idempotencyKey, ifMatch: ETag(rowVersion), cancellationToken: cancellationToken);
+
     // Plumbing ----------------------------------------------------------------------------------------------
     private static ByteArrayContent JsonContent<T>(T value, JsonTypeInfo<T> info)
     {

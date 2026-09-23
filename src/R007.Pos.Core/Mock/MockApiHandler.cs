@@ -93,7 +93,7 @@ public sealed partial class MockApiHandler : HttpMessageHandler
         var sports = Guid.Parse("00000000-0000-7000-8000-000000000104");
         _resources =
         [
-            new BookableResource(MockData.TennisCourt, sports, "Tennis Court 1", "TIME_SLOT", 1, 60, null, 5000m, true),
+            new BookableResource(MockData.TennisCourt, sports, "Tennis Court 1", "TIME_SLOT", 1, 60, MockData.TennisFee, 5000m, true),
             new BookableResource(MockData.SwimmingPool, sports, "Swimming Pool", "INDIVIDUAL_CAPACITY", 50, 60, MockData.PoolTicket, 3000m, true),
         ];
 

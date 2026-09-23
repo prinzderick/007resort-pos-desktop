@@ -244,7 +244,7 @@ internal sealed class MBooking
 
     public required DateTimeOffset HoldExpiresAt { get; init; }
 
-    public required Guid OrderId { get; init; }
+    public Guid? OrderId { get; set; }
 
     public Guid? EntitlementId { get; set; }
 

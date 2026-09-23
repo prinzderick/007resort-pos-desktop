@@ -25,6 +25,7 @@ public static class MockData
     public static readonly Guid Racket = Guid.Parse("00000000-0000-7000-8000-000000001101");
     public static readonly Guid Towel = Guid.Parse("00000000-0000-7000-8000-000000001102");
     public static readonly Guid PoolTicket = Guid.Parse("00000000-0000-7000-8000-000000001103");
+    public static readonly Guid TennisFee = Guid.Parse("00000000-0000-7000-8000-000000001104");
 
     public static readonly Guid CatDrinks = Guid.Parse("00000000-0000-7000-8000-000000002001");
     public static readonly Guid CatFood = Guid.Parse("00000000-0000-7000-8000-000000002002");
@@ -57,6 +58,7 @@ public static class MockData
         P(Racket, "RNT-RACKET", "Racket Rental", CatRentals, ProductKinds.Rental, 1000m),
         P(Towel, "RNT-TOWEL", "Towel Rental", CatRentals, ProductKinds.Rental, 500m),
         P(PoolTicket, "TKT-POOL", "Pool Day Ticket", CatRentals, ProductKinds.Ticket, 3000m),
+        P(TennisFee, "FEE-TENNIS", "Tennis court (per hour)", CatRentals, ProductKinds.Service, 5000m),
     ];
 
     /// <summary>Barcodes the mock server resolves through the product search (<c>q=</c>).</summary>

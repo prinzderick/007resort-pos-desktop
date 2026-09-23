@@ -132,6 +132,12 @@ public interface IR007ApiClient
     Task<Entitlement> GetEntitlementAsync(Guid entitlementId, CancellationToken cancellationToken = default);
 
     Task<Entitlement> IssueEntitlementAsync(IssueEntitlementRequest request, string idempotencyKey, CancellationToken cancellationToken = default);
+
+    /// <summary>All QR entitlements of an order or a booking (an order of 5 individual pool tickets has 5).</summary>
+    Task<IReadOnlyList<Entitlement>> ListEntitlementsAsync(Guid? orderId = null, Guid? bookingId = null, CancellationToken cancellationToken = default);
+
+    /// <summary>Attaches the paying order to a HELD booking (<c>POST /bookings/{id}/order</c>); the booking becomes PENDING_PAYMENT.</summary>
+    Task<Booking> AttachBookingOrderAsync(Guid bookingId, int rowVersion, Guid orderId, string idempotencyKey, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Generates <c>Idempotency-Key</c> values (time-ordered GUIDs, &gt;= 16 chars as the contract requires) and client ids.</summary>
