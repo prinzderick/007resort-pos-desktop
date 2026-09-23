@@ -199,7 +199,7 @@ public sealed class PosContext : ObservableObject
             var info = await Api.GetSystemInfoAsync(ct).ConfigureAwait(true);
             ServerInfo = info;
             if (info.MinClientVersion is { } min
-                && (min.TryGetValue("POS_TERMINAL", out var required) || min.TryGetValue("pos", out required))
+                && (min.TryGetValue("pos", out var required) || min.TryGetValue("POS_TERMINAL", out required))
                 && Version.TryParse(required, out var need)
                 && Version.TryParse(AppVersion, out var have)
                 && have < need)

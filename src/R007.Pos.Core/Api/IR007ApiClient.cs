@@ -13,7 +13,7 @@ public interface IR007ApiClient
     // System / device ---------------------------------------------------------------------------------------
     Task<SystemInfo> GetSystemInfoAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Cheap liveness probe (<c>GET /health/live</c>); false on any failure.</summary>
+    /// <summary>Cheap liveness probe (<c>GET /health/live</c> at the server ROOT, not under <c>/api/v1</c>); false on any failure.</summary>
     Task<bool> PingAsync(CancellationToken cancellationToken = default);
 
     Task<DeviceRegisterResult> RegisterDeviceAsync(DeviceRegisterRequest request, string idempotencyKey, CancellationToken cancellationToken = default);

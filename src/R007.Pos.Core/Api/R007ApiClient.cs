@@ -31,7 +31,7 @@ public sealed class R007ApiClient(HttpClient httpClient) : IR007ApiClient
     {
         try
         {
-            using var response = await SendRawAsync(HttpMethod.Get, "api/v1/health/live", null, null, null, null, cancellationToken).ConfigureAwait(false);
+            using var response = await SendRawAsync(HttpMethod.Get, "health/live" /* probes live at the server root, outside /api/v1 (OpenAPI servers override) */, null, null, null, null, cancellationToken).ConfigureAwait(false);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex) when (ex is ApiException or ApiUnavailableException)

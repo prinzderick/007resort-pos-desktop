@@ -112,7 +112,7 @@ public static class MockData
         Permissions.OrderVoidExecute, Permissions.OrderDiscountExecute, Permissions.OrderCompExecute, Permissions.OrderPriceOverrideExecute,
         Permissions.RefundExecute, Permissions.PaymentReversalExecute, Permissions.TabView, Permissions.TabOpen, Permissions.MembershipView,
         Permissions.BookingCreate, Permissions.TicketIssue, Permissions.OrderView, Permissions.PaymentView, Permissions.ReceiptView, Permissions.CashSessionView,
-        Permissions.OrderLineAdd, Permissions.OrderLineRemoveUnsent, Permissions.ReportView,
+        Permissions.OrderLineAdd, Permissions.OrderLineRemoveUnsent, Permissions.ReportView, Permissions.OrderServe,
     ];
 
     public static IReadOnlyList<string> WaiterPermissions { get; } =

@@ -235,6 +235,11 @@ public sealed partial class MockApiHandler
                 throw new MockProblem(409, "order_state_invalid", $"Order {order.Number} cannot take payment ({order.Status})");
             }
 
+            if (_paymentTiming.TryGetValue(order.FacilityId, out var timing) && timing != PaymentTimings.PayFirst && order.Status != OrderStatuses.Served)
+            {
+                throw new MockProblem(409, "order_state_invalid", $"This facility takes payment after service; the order is {order.Status}.");
+            }
+
             if (amount <= 0m || amount > ToDto(order).BalanceDue)
             {
                 throw new MockProblem(409, "balance_changed", $"Order {order.Number} balance is now {ToDto(order).BalanceDue.ToString("0.00", CultureInfo.InvariantCulture)}");
@@ -334,7 +339,8 @@ public sealed partial class MockApiHandler
     {
         var dto = ToDto(order);
         order.RowVersion++;
-        if (dto.BalanceDue <= 0m && dto.Total > 0m)
+        var keepsStatus = _paymentTiming.TryGetValue(order.FacilityId, out var timing) && timing == PaymentTimings.PayFirst && order.Status != OrderStatuses.Served;
+        if (dto.BalanceDue <= 0m && dto.Total > 0m && !keepsStatus)
         {
             order.Status = OrderStatuses.Settled;
             ReleaseTable(order);

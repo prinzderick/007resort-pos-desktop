@@ -26,6 +26,7 @@ public static class EnrolAndLogin
         Check.True(rig.DeviceToken.StartsWith("r7d_", StringComparison.Ordinal), "device token has the r7d_ prefix");
         node.Log($"enrolled device {rig.Ctx.Identity!.DeviceId} at {rig.Ctx.FacilityName}");
 
+        Check.True(await rig.Api.PingAsync(), "GET /health/live (server root) answers: the connectivity probe works");
         var check = await rig.Ctx.CheckServerAsync();
         Check.True(check.Ok, "server check (minClientVersion) passes: " + check.Message);
 

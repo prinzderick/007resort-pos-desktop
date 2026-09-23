@@ -58,6 +58,7 @@ namespace R007.Pos.Core.Api;
 [JsonSerializable(typeof(Receipt))]
 [JsonSerializable(typeof(Page<Membership>))]
 [JsonSerializable(typeof(CashSession))]
+[JsonSerializable(typeof(CashSessionTotals))]
 [JsonSerializable(typeof(Page<CashSession>))]
 [JsonSerializable(typeof(OpenCashSessionRequest))]
 [JsonSerializable(typeof(CloseCashSessionRequest))]

@@ -64,6 +64,9 @@ public sealed class PosRig : IDisposable
 
     public NodeContext Node { get; }
 
+    /// <summary>The encrypted emergency-queue file.</summary>
+    public string QueueFile => Path.Combine(_dir, "queue.bin");
+
     public PosOptions Options { get; }
 
     public ServerEndpoint Endpoint { get; }

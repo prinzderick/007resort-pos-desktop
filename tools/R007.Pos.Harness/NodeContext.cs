@@ -78,7 +78,7 @@ public sealed class NodeContext
             bool reachable;
             try
             {
-                reachable = (await Raw.GetAsync("health/live").ConfigureAwait(false)).Code == 200;
+                reachable = (await Raw.GetAsync("system/info").ConfigureAwait(false)).Code == 200;
             }
             catch (HttpRequestException)
             {

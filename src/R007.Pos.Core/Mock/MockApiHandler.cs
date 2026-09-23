@@ -107,6 +107,23 @@ public sealed partial class MockApiHandler : HttpMessageHandler
     /// <summary>Simulate a network outage: every call throws <see cref="HttpRequestException"/>.</summary>
     public bool Offline { get; set; }
 
+    private readonly Dictionary<Guid, string> _paymentTiming = [];
+
+    /// <summary>
+    /// Make the mock behave like the node for a facility's <c>paymentTiming</c> rule: <c>PAY_FIRST</c> lets a DRAFT order be paid (and a paid
+    /// order stays DRAFT/SENT), any other value (e.g. <c>PAY_BEFORE_LEAVING</c>) only takes payment for a SERVED order (<c>409 order_state_invalid</c>).
+    /// The rule is also advertised in the facility's operating rules. Off by default so the older tests keep their simple flow.
+    /// </summary>
+    public void UsePaymentTiming(Guid facilityId, string timing)
+    {
+        lock (_gate)
+        {
+            _paymentTiming[facilityId] = timing;
+            var caps = _facilityCaps[facilityId];
+            _facilityCaps[facilityId] = caps with { OperatingRules = caps.OperatingRules! with { PaymentTiming = timing } };
+        }
+    }
+
     /// <summary>Respond 503 to this many upcoming requests (to exercise retries).</summary>
     public int FailNextWith503 { get; set; }
 
@@ -372,12 +389,7 @@ public sealed partial class MockApiHandler : HttpMessageHandler
         // Public endpoints
         if (method == "GET" && Match(seg, "system/info", out _))
         {
-            return Json(200, new SystemInfo("007resort-api", "1.0.0", "local", null, Now, "Africa/Lagos", "NGN", new Dictionary<string, string> { ["POS_TERMINAL"] = MinPosVersion }, _options.VatRatePercent > 0, Realtime), Ctx.SystemInfo);
-        }
-
-        if (method == "GET" && Match(seg, "health/live", out _))
-        {
-            return Json(200, new Health("ok"), Ctx.Health);
+            return Json(200, new SystemInfo("007resort-api", "1.0.0", "local", null, Now, "Africa/Lagos", "NGN", new Dictionary<string, string> { ["pos"] = MinPosVersion } /* the node keys minClientVersion by lower-case app: mobile/pos/kds/admin */, _options.VatRatePercent > 0, Realtime), Ctx.SystemInfo);
         }
 
         if (method == "POST" && Match(seg, "devices/register", out _))
