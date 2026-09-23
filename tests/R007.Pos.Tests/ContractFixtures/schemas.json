@@ -1,0 +1,987 @@
+{
+ "source": "007resort-docs contract branch, api/openapi/v1.yaml at commit e205d58",
+ "requests": {
+  "StaffLoginRequest": {
+   "properties": [
+    "credentialType",
+    "identifier",
+    "secret",
+    "username",
+    "password",
+    "pin"
+   ],
+   "required": []
+  },
+  "StepUpRequest": {
+   "properties": [
+    "credentialType",
+    "identifier",
+    "secret",
+    "permission",
+    "entityType",
+    "entityId"
+   ],
+   "required": [
+    "credentialType",
+    "secret",
+    "permission"
+   ]
+  },
+  "DeviceRegisterRequest": {
+   "properties": [
+    "name",
+    "kind",
+    "hardwareId",
+    "platform",
+    "appVersion",
+    "registrationCode"
+   ],
+   "required": [
+    "name",
+    "kind",
+    "hardwareId",
+    "registrationCode"
+   ]
+  },
+  "CreateOrderRequest": {
+   "properties": [
+    "facilityId",
+    "tableId",
+    "tabId",
+    "channel",
+    "customerName",
+    "lines",
+    "id",
+    "clientCreatedAt"
+   ],
+   "required": [
+    "facilityId"
+   ]
+  },
+  "OrderLineInput": {
+   "properties": [
+    "productId",
+    "quantity",
+    "notes",
+    "id",
+    "clientCreatedAt"
+   ],
+   "required": [
+    "productId",
+    "quantity"
+   ]
+  },
+  "SendOrderRequest": {
+   "properties": [
+    "lineIds"
+   ],
+   "required": []
+  },
+  "VoidRequest": {
+   "properties": [
+    "reason"
+   ],
+   "required": [
+    "reason"
+   ]
+  },
+  "AdjustmentRequest": {
+   "properties": [
+    "kind",
+    "value",
+    "reason"
+   ],
+   "required": [
+    "kind",
+    "value",
+    "reason"
+   ]
+  },
+  "ApprovalDecisionRequest": {
+   "properties": [
+    "decision",
+    "note",
+    "stepUpToken"
+   ],
+   "required": [
+    "decision"
+   ]
+  },
+  "OpenTabRequest": {
+   "properties": [
+    "facilityId",
+    "tableId",
+    "customerName",
+    "orderIds",
+    "id",
+    "clientCreatedAt"
+   ],
+   "required": [
+    "facilityId"
+   ]
+  },
+  "AddTabOrdersRequest": {
+   "properties": [
+    "orderIds"
+   ],
+   "required": [
+    "orderIds"
+   ]
+  },
+  "SettleTabRequest": {
+   "properties": [
+    "tenders",
+    "cashSessionId"
+   ],
+   "required": [
+    "tenders"
+   ]
+  },
+  "CreatePaymentRequest": {
+   "properties": [
+    "facilityId",
+    "cashSessionId",
+    "allocations",
+    "tabId",
+    "tenders",
+    "customerName",
+    "clientCreatedAt"
+   ],
+   "required": [
+    "facilityId",
+    "allocations",
+    "tenders"
+   ]
+  },
+  "TenderInput": {
+   "properties": [
+    "tenderType",
+    "amount",
+    "reference",
+    "tendered",
+    "id",
+    "clientCreatedAt"
+   ],
+   "required": [
+    "tenderType",
+    "amount"
+   ]
+  },
+  "RefundRequest": {
+   "properties": [
+    "amount",
+    "reason",
+    "tenderType"
+   ],
+   "required": [
+    "amount",
+    "reason"
+   ]
+  },
+  "ReversalRequest": {
+   "properties": [
+    "reason"
+   ],
+   "required": [
+    "reason"
+   ]
+  },
+  "PaystackInitRequest": {
+   "properties": [
+    "orderIds",
+    "bookingId",
+    "membershipId",
+    "amount",
+    "email",
+    "callbackUrl"
+   ],
+   "required": [
+    "amount",
+    "email"
+   ]
+  },
+  "OpenCashSessionRequest": {
+   "properties": [
+    "facilityId",
+    "openingFloat"
+   ],
+   "required": [
+    "facilityId",
+    "openingFloat"
+   ]
+  },
+  "CloseCashSessionRequest": {
+   "properties": [
+    "countedCash",
+    "note"
+   ],
+   "required": [
+    "countedCash"
+   ]
+  },
+  "HoldRequest": {
+   "properties": [
+    "resourceId",
+    "start",
+    "end",
+    "quantity",
+    "customer"
+   ],
+   "required": [
+    "resourceId",
+    "start",
+    "end"
+   ]
+  },
+  "ConfirmBookingRequest": {
+   "properties": [
+    "tenders",
+    "cashSessionId",
+    "paystackReference"
+   ],
+   "required": []
+  },
+  "CancelBookingRequest": {
+   "properties": [
+    "reason"
+   ],
+   "required": [
+    "reason"
+   ]
+  },
+  "IssueEntitlementRequest": {
+   "properties": [
+    "orderId",
+    "bookingId"
+   ],
+   "required": []
+  },
+  "RefreshRequest": {
+   "properties": [
+    "refreshToken"
+   ],
+   "required": [
+    "refreshToken"
+   ]
+  },
+  "LogoutRequest": {
+   "properties": [
+    "allSessions"
+   ],
+   "required": []
+  },
+  "CustomerInput": {
+   "properties": [
+    "name",
+    "phone",
+    "email",
+    "membershipId"
+   ],
+   "required": [
+    "name"
+   ]
+  }
+ },
+ "responses": {
+  "SystemInfo": {
+   "properties": [
+    "service",
+    "apiVersion",
+    "deploymentMode",
+    "nodeId",
+    "serverTime",
+    "timezone",
+    "currency",
+    "minClientVersion",
+    "vatEnabled",
+    "realtime"
+   ],
+   "required": [
+    "service",
+    "apiVersion",
+    "deploymentMode",
+    "serverTime",
+    "currency"
+   ]
+  },
+  "Staff": {
+   "properties": [
+    "id",
+    "displayName",
+    "staffNumber",
+    "roles",
+    "permissions",
+    "facilityIds"
+   ],
+   "required": [
+    "id",
+    "displayName",
+    "roles",
+    "permissions"
+   ]
+  },
+  "AuthResult": {
+   "properties": [
+    "accessToken",
+    "refreshToken",
+    "expiresInSeconds",
+    "staff",
+    "session"
+   ],
+   "required": [
+    "accessToken",
+    "refreshToken",
+    "expiresInSeconds",
+    "staff",
+    "session"
+   ]
+  },
+  "StepUpResult": {
+   "properties": [
+    "stepUpToken",
+    "expiresInSeconds",
+    "approver"
+   ],
+   "required": [
+    "stepUpToken",
+    "expiresInSeconds",
+    "approver"
+   ]
+  },
+  "Device": {
+   "properties": [
+    "id",
+    "name",
+    "kind",
+    "status",
+    "facilityId",
+    "homeFacilityId",
+    "platform",
+    "appVersion",
+    "lastSeenAt",
+    "checkout",
+    "rowVersion"
+   ],
+   "required": [
+    "id",
+    "name",
+    "kind",
+    "status"
+   ]
+  },
+  "DeviceRegisterResult": {
+   "properties": [
+    "device",
+    "deviceToken"
+   ],
+   "required": [
+    "device",
+    "deviceToken"
+   ]
+  },
+  "Facility": {
+   "properties": [
+    "id",
+    "siteId",
+    "parentId",
+    "code",
+    "name",
+    "kind",
+    "status",
+    "capabilities",
+    "rowVersion"
+   ],
+   "required": [
+    "id",
+    "siteId",
+    "code",
+    "name",
+    "kind",
+    "status"
+   ]
+  },
+  "FacilityCapabilities": {
+   "properties": [
+    "facilityId",
+    "capabilities",
+    "operatingRules",
+    "version"
+   ],
+   "required": [
+    "facilityId",
+    "capabilities",
+    "operatingRules"
+   ]
+  },
+  "OperatingRules": {
+   "properties": [
+    "approvalThresholdAmount",
+    "requireApprovalFor",
+    "allowOpenTabs",
+    "requireCashSession",
+    "allowOfflineOrders",
+    "allowOfflinePayments",
+    "holdTtlSeconds",
+    "vatEnabled",
+    "vatRatePercent"
+   ],
+   "required": []
+  },
+  "Category": {
+   "properties": [
+    "id",
+    "parentId",
+    "name",
+    "sortOrder"
+   ],
+   "required": [
+    "id",
+    "name"
+   ]
+  },
+  "Product": {
+   "properties": [
+    "id",
+    "sku",
+    "name",
+    "categoryId",
+    "kind",
+    "price",
+    "currency",
+    "taxInclusive",
+    "taxRatePercent",
+    "taxAmount",
+    "prepRoute",
+    "trackStock",
+    "active",
+    "imageUrl",
+    "rowVersion"
+   ],
+   "required": [
+    "id",
+    "name",
+    "categoryId",
+    "kind",
+    "price",
+    "currency",
+    "prepRoute",
+    "active"
+   ]
+  },
+  "DiningTable": {
+   "properties": [
+    "id",
+    "facilityId",
+    "operatingPointId",
+    "label",
+    "seats",
+    "status",
+    "openOrderIds",
+    "openTabId",
+    "rowVersion"
+   ],
+   "required": [
+    "id",
+    "facilityId",
+    "label",
+    "status"
+   ]
+  },
+  "Order": {
+   "properties": [
+    "id",
+    "number",
+    "facilityId",
+    "tableId",
+    "tabId",
+    "customerName",
+    "channel",
+    "status",
+    "lines",
+    "subtotal",
+    "discountTotal",
+    "taxTotal",
+    "total",
+    "amountPaid",
+    "balanceDue",
+    "currency",
+    "createdByStaffId",
+    "deviceId",
+    "pendingApprovalId",
+    "rowVersion",
+    "createdAt",
+    "updatedAt",
+    "sentAt"
+   ],
+   "required": [
+    "id",
+    "number",
+    "facilityId",
+    "status",
+    "lines",
+    "subtotal",
+    "taxTotal",
+    "total",
+    "amountPaid",
+    "balanceDue",
+    "currency",
+    "rowVersion",
+    "createdAt"
+   ]
+  },
+  "OrderLine": {
+   "properties": [
+    "id",
+    "productId",
+    "name",
+    "quantity",
+    "unitPrice",
+    "taxAmount",
+    "lineTotal",
+    "notes",
+    "status",
+    "prepRoute",
+    "adjustments"
+   ],
+   "required": [
+    "id",
+    "productId",
+    "name",
+    "quantity",
+    "unitPrice",
+    "lineTotal",
+    "status"
+   ]
+  },
+  "OrderSummary": {
+   "properties": [
+    "id",
+    "number",
+    "facilityId",
+    "tableId",
+    "tableLabel",
+    "tabId",
+    "status",
+    "total",
+    "balanceDue",
+    "lineCount",
+    "createdAt"
+   ],
+   "required": [
+    "id",
+    "number",
+    "facilityId",
+    "status",
+    "total",
+    "balanceDue"
+   ]
+  },
+  "LineAdjustment": {
+   "properties": [
+    "id",
+    "kind",
+    "value",
+    "reason",
+    "amount",
+    "status",
+    "approvalId"
+   ],
+   "required": [
+    "id",
+    "kind",
+    "value",
+    "reason",
+    "status"
+   ]
+  },
+  "Approval": {
+   "properties": [
+    "id",
+    "action",
+    "entityType",
+    "entityId",
+    "facilityId",
+    "status",
+    "requestedByStaffId",
+    "requestedByName",
+    "requestedAt",
+    "reason",
+    "amount",
+    "summary",
+    "decidedByStaffId",
+    "decidedAt",
+    "decisionNote",
+    "requiredPermission"
+   ],
+   "required": [
+    "id",
+    "action",
+    "entityType",
+    "entityId",
+    "status",
+    "requestedAt",
+    "reason"
+   ]
+  },
+  "ApprovalOutcome": {
+   "properties": [
+    "status",
+    "approval",
+    "order"
+   ],
+   "required": [
+    "status",
+    "approval"
+   ]
+  },
+  "Tab": {
+   "properties": [
+    "id",
+    "facilityId",
+    "tableId",
+    "customerName",
+    "status",
+    "orderIds",
+    "total",
+    "amountPaid",
+    "balanceDue",
+    "currency",
+    "openedByStaffId",
+    "openedAt",
+    "rowVersion"
+   ],
+   "required": [
+    "id",
+    "facilityId",
+    "status",
+    "orderIds",
+    "total",
+    "amountPaid",
+    "balanceDue",
+    "openedAt"
+   ]
+  },
+  "Payment": {
+   "properties": [
+    "id",
+    "groupId",
+    "facilityId",
+    "tenderType",
+    "provider",
+    "providerReference",
+    "reference",
+    "status",
+    "amount",
+    "tendered",
+    "changeGiven",
+    "refundedAmount",
+    "currency",
+    "allocations",
+    "cashSessionId",
+    "receiptId",
+    "takenByStaffId",
+    "createdAt",
+    "capturedAt"
+   ],
+   "required": [
+    "id",
+    "facilityId",
+    "tenderType",
+    "status",
+    "amount",
+    "currency",
+    "allocations",
+    "createdAt"
+   ]
+  },
+  "PaymentResult": {
+   "properties": [
+    "payments",
+    "orders",
+    "receiptId",
+    "changeDue"
+   ],
+   "required": [
+    "payments",
+    "receiptId"
+   ]
+  },
+  "Refund": {
+   "properties": [
+    "id",
+    "paymentId",
+    "amount",
+    "reason",
+    "status",
+    "approvalId",
+    "createdAt"
+   ],
+   "required": [
+    "id",
+    "paymentId",
+    "amount",
+    "status"
+   ]
+  },
+  "PaymentReversal": {
+   "properties": [
+    "id",
+    "paymentId",
+    "reason",
+    "status",
+    "approvalId",
+    "createdAt"
+   ],
+   "required": [
+    "id",
+    "paymentId",
+    "status"
+   ]
+  },
+  "PaystackInitResult": {
+   "properties": [
+    "paymentId",
+    "reference",
+    "authorizationUrl",
+    "accessCode"
+   ],
+   "required": [
+    "paymentId",
+    "reference",
+    "authorizationUrl"
+   ]
+  },
+  "Receipt": {
+   "properties": [
+    "id",
+    "number",
+    "facilityId",
+    "facilityName",
+    "siteName",
+    "siteAddress",
+    "issuedAt",
+    "cashierName",
+    "orderNumbers",
+    "tableLabel",
+    "lines",
+    "subtotal",
+    "discountTotal",
+    "taxTotal",
+    "total",
+    "currency",
+    "tenders",
+    "changeGiven",
+    "vatNumber",
+    "qrPayload",
+    "reprintCount",
+    "footer"
+   ],
+   "required": [
+    "id",
+    "number",
+    "facilityName",
+    "issuedAt",
+    "lines",
+    "subtotal",
+    "taxTotal",
+    "total",
+    "currency",
+    "tenders"
+   ]
+  },
+  "CashSession": {
+   "properties": [
+    "id",
+    "facilityId",
+    "deviceId",
+    "staffId",
+    "status",
+    "openingFloat",
+    "expectedCash",
+    "countedCash",
+    "variance",
+    "openedAt",
+    "closedAt"
+   ],
+   "required": [
+    "id",
+    "facilityId",
+    "staffId",
+    "status",
+    "openingFloat",
+    "openedAt"
+   ]
+  },
+  "CashierShiftReport": {
+   "properties": [
+    "shiftId",
+    "staffId",
+    "staffName",
+    "facilityId",
+    "openedAt",
+    "closedAt",
+    "openingFloat",
+    "byTender",
+    "expectedCash",
+    "countedCash",
+    "variance",
+    "refunds",
+    "voids",
+    "paymentIds",
+    "freshness"
+   ],
+   "required": [
+    "shiftId",
+    "staffId",
+    "facilityId",
+    "openedAt",
+    "openingFloat",
+    "byTender",
+    "expectedCash",
+    "freshness"
+   ]
+  },
+  "BookableResource": {
+   "properties": [
+    "id",
+    "facilityId",
+    "name",
+    "mode",
+    "capacity",
+    "slotMinutes",
+    "productId",
+    "price",
+    "active"
+   ],
+   "required": [
+    "id",
+    "facilityId",
+    "name",
+    "mode",
+    "slotMinutes",
+    "price"
+   ]
+  },
+  "Availability": {
+   "properties": [
+    "resourceId",
+    "from",
+    "to",
+    "slots"
+   ],
+   "required": [
+    "resourceId",
+    "slots"
+   ]
+  },
+  "Booking": {
+   "properties": [
+    "id",
+    "number",
+    "resourceId",
+    "resourceName",
+    "facilityId",
+    "start",
+    "end",
+    "quantity",
+    "status",
+    "holdExpiresAt",
+    "customer",
+    "total",
+    "amountPaid",
+    "orderId",
+    "entitlementId",
+    "source",
+    "rowVersion",
+    "createdAt"
+   ],
+   "required": [
+    "id",
+    "number",
+    "resourceId",
+    "start",
+    "end",
+    "status",
+    "total",
+    "amountPaid",
+    "rowVersion"
+   ]
+  },
+  "Entitlement": {
+   "properties": [
+    "id",
+    "qrToken",
+    "status",
+    "orderId",
+    "bookingId",
+    "holderName",
+    "items",
+    "issuedAt"
+   ],
+   "required": [
+    "id",
+    "qrToken",
+    "status",
+    "items",
+    "issuedAt"
+   ]
+  },
+  "EntitlementItem": {
+   "properties": [
+    "id",
+    "kind",
+    "name",
+    "facilityId",
+    "quantity",
+    "quantityRedeemed",
+    "validationMode",
+    "validFrom",
+    "validUntil",
+    "rentalStatus"
+   ],
+   "required": [
+    "id",
+    "kind",
+    "name",
+    "facilityId",
+    "quantity",
+    "quantityRedeemed",
+    "validationMode"
+   ]
+  },
+  "Membership": {
+   "properties": [
+    "id",
+    "number",
+    "planId",
+    "planName",
+    "holderName",
+    "status",
+    "validFrom",
+    "validUntil",
+    "visitsUsed",
+    "visitLimit",
+    "qrToken"
+   ],
+   "required": [
+    "id",
+    "number",
+    "planId",
+    "holderName",
+    "status",
+    "validFrom",
+    "validUntil"
+   ]
+  },
+  "PrepRoute": {
+   "properties": [
+    "stationId",
+    "stationName",
+    "kind"
+   ],
+   "required": [
+    "kind"
+   ]
+  }
+ }
+}

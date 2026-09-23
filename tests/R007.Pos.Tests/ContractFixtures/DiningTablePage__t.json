@@ -1,0 +1,16 @@
+{
+ "items": [
+  {
+   "id": "0192f6a0-0000-7000-8000-000000000201",
+   "facilityId": "0192f6a0-0000-7000-8000-000000000101",
+   "operatingPointId": null,
+   "label": "T12",
+   "seats": 4,
+   "status": "FREE",
+   "openOrderIds": [],
+   "openTabId": null,
+   "rowVersion": 1
+  }
+ ],
+ "nextCursor": null
+}

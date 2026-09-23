@@ -1,0 +1,33 @@
+{
+ "payments": [
+  {
+   "id": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a90",
+   "groupId": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a91",
+   "facilityId": "0192f6a0-0000-7000-8000-000000000101",
+   "tenderType": "CASH",
+   "provider": "MANUAL",
+   "providerReference": null,
+   "reference": null,
+   "status": "CAPTURED",
+   "amount": "9000.0000",
+   "tendered": "10000.0000",
+   "changeGiven": "1000.0000",
+   "refundedAmount": "0.0000",
+   "currency": "NGN",
+   "allocations": [
+    {
+     "orderId": "0192f6a0-0000-7000-8000-000000000601",
+     "amount": "9000.0000"
+    }
+   ],
+   "cashSessionId": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a92",
+   "receiptId": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a91",
+   "takenByStaffId": "0192f6a0-0000-7000-8000-000000000401",
+   "createdAt": "2026-09-23T10:15:30.123456Z",
+   "capturedAt": "2026-09-23T10:15:30.123456Z"
+  }
+ ],
+ "orders": [],
+ "receiptId": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a91",
+ "changeDue": "1000.0000"
+}

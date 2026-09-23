@@ -26,22 +26,31 @@ public sealed class QueueReplayService(IOfflineQueue queue, HttpClient http, Aut
     public const string CapturedAtHeader = "X-Offline-Captured-At";
     public const string CapturedByHeader = "X-Offline-Staff-Id";
 
-    private readonly SemaphoreSlim _drain = new(1, 1);
+    private readonly object _gate = new();
+    private Task<ReplayResult>? _running;
 
     // aggregate GET path -> last known rowVersion (this drain only; always re-derived from server truth)
     private readonly Dictionary<string, int> _versions = [];
 
     public event EventHandler<ReplayResult>? Drained;
 
-    public async Task<ReplayResult> DrainAsync(CancellationToken ct = default)
+    /// <summary>
+    /// Drains the queue. Only one drain runs at a time (strict ordering); a caller arriving while one is in progress
+    /// simply waits for it and shares its result.
+    /// </summary>
+    public Task<ReplayResult> DrainAsync(CancellationToken ct = default)
     {
-        if (!await _drain.WaitAsync(0, ct).ConfigureAwait(false))
+        lock (_gate)
         {
-            return new ReplayResult(0, 0, await queue.CountPendingAsync(ct).ConfigureAwait(false), ReplayStop.None);
+            return _running ??= RunAsync(ct);
         }
+    }
 
+    private async Task<ReplayResult> RunAsync(CancellationToken ct)
+    {
         try
         {
+            await Task.Yield(); // let the caller store the task before any work starts
             var replayed = 0;
             var rejected = 0;
             var stop = ReplayStop.None;
@@ -79,7 +88,10 @@ public sealed class QueueReplayService(IOfflineQueue queue, HttpClient http, Aut
         }
         finally
         {
-            _drain.Release();
+            lock (_gate)
+            {
+                _running = null;
+            }
         }
     }
 

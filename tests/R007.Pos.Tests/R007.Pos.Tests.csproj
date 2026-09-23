@@ -18,6 +18,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Example payloads and schema property lists copied from the API contract (api/openapi/v1.yaml). -->
+    <None Update="ContractFixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\R007.Pos.Core\R007.Pos.Core.csproj" />
     <ProjectReference Include="..\..\src\R007.Pos.Devices\R007.Pos.Devices.csproj" />
     <ProjectReference Include="..\..\src\R007.Pos.ViewModels\R007.Pos.ViewModels.csproj" />

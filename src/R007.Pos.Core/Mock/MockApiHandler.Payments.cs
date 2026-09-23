@@ -177,7 +177,7 @@ public sealed partial class MockApiHandler
                 .GroupBy(p => p.Tender).Select(g => new ShiftTenderTotal(g.Key, g.Sum(p => p.Amount - p.Refunded), g.Count())).ToList();
             var refunds = _payments.Values.Where(p => p.CashSessionId == session.Id).Sum(p => p.Refunded);
             var staff = _staff.First(s => s.Id == session.StaffId);
-            return Json(200, new CashierShiftReport(session.Id, session.StaffId, staff.Display, session.FacilityId, session.OpenedAt, session.ClosedAt, session.OpeningFloat, byTender, dto.ExpectedCash ?? 0m, dto.CountedCash, dto.Variance, refunds, 0), Ctx.CashierShiftReport);
+            return Json(200, new CashierShiftReport(session.Id, session.StaffId, staff.Display, session.FacilityId, session.OpenedAt, session.ClosedAt, session.OpeningFloat, byTender, dto.ExpectedCash ?? 0m, dto.CountedCash, dto.Variance, refunds, 0, new Freshness(Now, "local", null, false, null, 0, 300)), Ctx.CashierShiftReport);
         }
 
         return null;

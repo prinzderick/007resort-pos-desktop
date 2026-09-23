@@ -30,6 +30,9 @@ public sealed class LoginViewModel : ScreenViewModel, IScanTarget
     private string _pin = string.Empty;
     private string? _nfcUid;
     private LoginStep _step;
+    private bool _usePassword;
+    private string _username = string.Empty;
+    private string _password = string.Empty;
 
     public LoginViewModel(PosContext ctx)
     {
@@ -40,6 +43,7 @@ public sealed class LoginViewModel : ScreenViewModel, IScanTarget
         ClearCommand = new RelayCommand(Reset);
         SignInCommand = new AsyncRelayCommand(SignInAsync, () => CanSignIn, SetError);
         CancelCardCommand = new RelayCommand(Reset);
+        TogglePasswordCommand = new RelayCommand(() => UsePassword = !UsePassword, () => !RequiresNfcAndPin);
     }
 
     /// <summary>Raised after a successful sign-in (session tokens are in <see cref="PosContext.Auth"/>).</summary>
@@ -89,8 +93,63 @@ public sealed class LoginViewModel : ScreenViewModel, IScanTarget
 
     /// <summary>Shown only in demo mode: the seeded staff (PIN / card).</summary>
     public string? DemoHint => _ctx.Options.Mock
-        ? $"DEMO staff (staff number / PIN): S-1001 cashier / {R007.Pos.Core.Mock.MockData.CashierPin}, S-1002 waiter / {R007.Pos.Core.Mock.MockData.WaiterPin}, S-1003 supervisor / {R007.Pos.Core.Mock.MockData.SupervisorPin}. Cards: {R007.Pos.Core.Mock.MockData.CashierNfc} (cashier), {R007.Pos.Core.Mock.MockData.SupervisorNfc} (supervisor)."
+        ? $"DEMO staff (staff number / PIN): S-1001 cashier / {R007.Pos.Core.Mock.MockData.CashierPin}, S-1002 waiter / {R007.Pos.Core.Mock.MockData.WaiterPin}, S-1003 supervisor / {R007.Pos.Core.Mock.MockData.SupervisorPin} (username cashier|waiter|supervisor with the same PIN as password). Card UIDs: {R007.Pos.Core.Mock.MockData.CashierNfc} (cashier), {R007.Pos.Core.Mock.MockData.SupervisorNfc} (supervisor). Set R007_Pos__RequireNfcAndPin=true to try the NFC + PIN station."
         : null;
+
+    /// <summary>Sign in with username + password instead of staff number + PIN (not offered on NFC + PIN stations).</summary>
+    public bool UsePassword
+    {
+        get => _usePassword;
+        private set
+        {
+            if (SetProperty(ref _usePassword, value))
+            {
+                Error = null;
+                OnPropertyChanged(nameof(ShowPinEntry));
+                OnPropertyChanged(nameof(ShowPasswordEntry));
+                OnPropertyChanged(nameof(ToggleText));
+                OnPropertyChanged(nameof(CanSignIn));
+                SignInCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public string Username
+    {
+        get => _username;
+        set
+        {
+            if (SetProperty(ref _username, value))
+            {
+                OnPropertyChanged(nameof(CanSignIn));
+                SignInCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    /// <summary>Set from the password box; cleared as soon as it has been used.</summary>
+    public string Password
+    {
+        get => _password;
+        set
+        {
+            if (SetProperty(ref _password, value))
+            {
+                OnPropertyChanged(nameof(CanSignIn));
+                SignInCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool ShowPinEntry => ShowPinPad && !UsePassword;
+
+    public bool ShowPasswordEntry => Step == LoginStep.Credentials && UsePassword;
+
+    public bool CanTogglePassword => !RequiresNfcAndPin;
+
+    public string ToggleText => UsePassword ? "Use staff number and PIN" : "Use username and password";
+
+    public RelayCommand TogglePasswordCommand { get; }
 
     public string PinMasked => new('●', Pin.Length);
 
@@ -107,10 +166,11 @@ public sealed class LoginViewModel : ScreenViewModel, IScanTarget
         _ => "Sign in: staff number and PIN, or tap your card",
     };
 
-    public bool CanSignIn => !IsBusy && Pin.Length >= 4 && Step switch
+    public bool CanSignIn => !IsBusy && Step switch
     {
-        LoginStep.Credentials => !string.IsNullOrWhiteSpace(StaffNumber),
-        LoginStep.EnterPin => _nfcUid is not null,
+        LoginStep.Credentials when UsePassword => !string.IsNullOrWhiteSpace(Username) && Password.Length > 0,
+        LoginStep.Credentials => Pin.Length >= 4 && !string.IsNullOrWhiteSpace(StaffNumber),
+        LoginStep.EnterPin => Pin.Length >= 4 && _nfcUid is not null,
         _ => false,
     };
 
@@ -135,6 +195,7 @@ public sealed class LoginViewModel : ScreenViewModel, IScanTarget
     private void Reset()
     {
         Pin = string.Empty;
+        Password = string.Empty;
         _nfcUid = null;
         Error = null;
         Step = RequiresNfcAndPin ? LoginStep.TapCard : LoginStep.Credentials;
@@ -180,6 +241,10 @@ public sealed class LoginViewModel : ScreenViewModel, IScanTarget
             {
                 result = await SignInWithCardAndPinAsync(_nfcUid!, Pin).ConfigureAwait(true);
             }
+            else if (UsePassword)
+            {
+                result = await _ctx.Api.LoginAsync(new StaffLoginRequest(CredentialTypes.Password, Username.Trim(), Password)).ConfigureAwait(true);
+            }
             else
             {
                 result = await _ctx.Api.LoginAsync(new StaffLoginRequest(CredentialTypes.Pin, StaffNumber.Trim(), Pin)).ConfigureAwait(true);
@@ -191,6 +256,7 @@ public sealed class LoginViewModel : ScreenViewModel, IScanTarget
         {
             Error = Describe(ex);
             Pin = string.Empty;
+            Password = string.Empty;
         }
         finally
         {
@@ -239,7 +305,9 @@ public sealed class LoginViewModel : ScreenViewModel, IScanTarget
     {
         _ctx.Auth.SignIn(result, _ctx.Time.GetUtcNow());
         Pin = string.Empty;
+        Password = string.Empty;
         StaffNumber = string.Empty;
+        Username = string.Empty;
         _nfcUid = null;
         Step = RequiresNfcAndPin ? LoginStep.TapCard : LoginStep.Credentials;
         SignedIn?.Invoke(this, EventArgs.Empty);

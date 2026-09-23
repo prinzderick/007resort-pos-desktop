@@ -1,0 +1,35 @@
+{
+ "id": "0192f6a0-0000-7000-8000-000000000801",
+ "qrToken": "<qr-token>",
+ "status": "ACTIVE",
+ "orderId": "0192f6a0-0000-7000-8000-000000000601",
+ "bookingId": null,
+ "holderName": "Chinedu Eze",
+ "items": [
+  {
+   "id": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a90",
+   "kind": "ACCESS",
+   "name": "Tennis Court 1 - 09:00",
+   "facilityId": "0192f6a0-0000-7000-8000-000000000101",
+   "quantity": 1,
+   "quantityRedeemed": 0,
+   "validationMode": "SINGLE_USE",
+   "validFrom": "2026-09-24T08:45:00Z",
+   "validUntil": "2026-09-24T10:00:00Z",
+   "rentalStatus": null
+  },
+  {
+   "id": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a91",
+   "kind": "RENTAL",
+   "name": "Racket x2",
+   "facilityId": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a92",
+   "quantity": 2,
+   "quantityRedeemed": 0,
+   "validationMode": "NONE",
+   "validFrom": null,
+   "validUntil": null,
+   "rentalStatus": "NOT_RELEASED"
+  }
+ ],
+ "issuedAt": "2026-09-23T10:15:30.123456Z"
+}

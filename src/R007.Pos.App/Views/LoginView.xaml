@@ -11,12 +11,20 @@
             <TextBlock Style="{StaticResource Heading}" Text="Sign in" HorizontalAlignment="Center" />
             <TextBlock Text="{Binding Prompt}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,16" />
 
-            <StackPanel Visibility="{Binding ShowStaffNumber, Converter={StaticResource BoolToVis}}">
-                <TextBlock Text="Staff number" Margin="0,0,0,4" />
-                <TextBox Text="{Binding StaffNumber, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+            <StackPanel Visibility="{Binding ShowPasswordEntry, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="Username" Margin="0,0,0,4" />
+                <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+                <TextBlock Text="Password" Margin="0,0,0,4" />
+                <PasswordBox x:Name="PasswordBox" PasswordChanged="OnPasswordChanged" Margin="0,0,0,12" />
+                <Button Style="{StaticResource PrimaryButton}" Content="Sign in" Command="{Binding SignInCommand}" MinHeight="60" FontSize="20" />
             </StackPanel>
 
-            <StackPanel Visibility="{Binding ShowPinPad, Converter={StaticResource BoolToVis}}">
+            <StackPanel Visibility="{Binding ShowStaffNumber, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="Staff number" Margin="0,0,0,4" Visibility="{Binding ShowPinEntry, Converter={StaticResource BoolToVis}}" />
+                <TextBox Text="{Binding StaffNumber, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" Visibility="{Binding ShowPinEntry, Converter={StaticResource BoolToVis}}" />
+            </StackPanel>
+
+            <StackPanel Visibility="{Binding ShowPinEntry, Converter={StaticResource BoolToVis}}">
                 <Border Style="{StaticResource Card}" Background="{StaticResource PanelAltBrush}" MinHeight="56">
                     <TextBlock Text="{Binding PinMasked}" FontSize="28" HorizontalAlignment="Center" />
                 </Border>
@@ -36,6 +44,9 @@
                 </UniformGrid>
                 <Button Style="{StaticResource PrimaryButton}" Content="Sign in" Command="{Binding SignInCommand}" IsDefault="True" MinHeight="60" FontSize="20" />
             </StackPanel>
+
+            <Button Content="{Binding ToggleText}" Command="{Binding TogglePasswordCommand}" HorizontalAlignment="Center"
+                    Visibility="{Binding CanTogglePassword, Converter={StaticResource BoolToVis}}" />
 
             <Border Style="{StaticResource Card}" Background="{StaticResource PanelAltBrush}" Margin="0,16,0,0">
                 <StackPanel>

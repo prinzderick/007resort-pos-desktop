@@ -147,6 +147,9 @@ public sealed record CloseCashSessionRequest(decimal CountedCash, string? Note =
 
 public sealed record ShiftTenderTotal(string TenderType, decimal Amount, int? Count);
 
+/// <summary>Every report response says how fresh it is (local node vs. cloud copy); the POS surfaces stale data instead of hiding it.</summary>
+public sealed record Freshness(DateTimeOffset GeneratedAt, string SourceNode, DateTimeOffset? LastSyncAt, bool Stale, string? StaleReason, int? AgeSeconds, int? StaleAfterSeconds);
+
 public sealed record CashierShiftReport(
     Guid ShiftId,
     Guid StaffId,
@@ -160,4 +163,5 @@ public sealed record CashierShiftReport(
     decimal? CountedCash,
     decimal? Variance,
     decimal? Refunds,
-    int? Voids);
+    int? Voids,
+    Freshness Freshness);

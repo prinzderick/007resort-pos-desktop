@@ -608,7 +608,7 @@ public sealed partial class MockApiHandler : HttpMessageHandler
         if (method == "GET" && Match(seg, "organization/facilities/{}", out a))
         {
             var id = G(a[0]);
-            return Json(200, new Facility(id, "MOCK", MockData.FacilityName(id), "FACILITY", "ACTIVE"), Ctx.Facility);
+            return Json(200, new Facility(id, Guid.Parse("00000000-0000-7000-8000-000000000001"), "MOCK", MockData.FacilityName(id), "FACILITY", "ACTIVE"), Ctx.Facility);
         }
 
         if (method == "GET" && Match(seg, "catalog/categories", out _))

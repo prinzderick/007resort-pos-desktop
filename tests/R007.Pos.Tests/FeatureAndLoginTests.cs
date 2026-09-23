@@ -218,4 +218,30 @@ public sealed class FeatureAndLoginTests
 
         Assert.False(pos.Env.Auth.IsSignedIn);
     }
+
+    [Fact]
+    public async Task Login_UsernameAndPassword_IsAnAlternative_ButNotOnNfcPinStations()
+    {
+        var (pos, login) = await LoginEnvAsync();
+        using var _ = pos;
+        Assert.True(login.CanTogglePassword);
+        login.TogglePasswordCommand.Execute(null);
+        Assert.True(login.ShowPasswordEntry);
+        Assert.False(login.ShowPinEntry);
+
+        login.Username = "supervisor";
+        login.Password = MockData.SupervisorPin;
+        Assert.True(login.CanSignIn);
+        await login.SignInCommand.ExecuteAsync();
+
+        Assert.Equal("Ngozi Supervisor", pos.Ctx.Staff!.DisplayName);
+        Assert.Equal(string.Empty, login.Password);
+        var call = pos.Server.Requests.Single(r => r.Path == "/api/v1/auth/staff/login");
+        Assert.Contains("\"credentialType\":\"PASSWORD\"", call.Body, StringComparison.Ordinal);
+
+        var (strong, strongLogin) = await LoginEnvAsync(requireNfcAndPin: true);
+        using var _2 = strong;
+        Assert.False(strongLogin.CanTogglePassword);
+        Assert.False(strongLogin.TogglePasswordCommand.CanExecute(null));
+    }
 }

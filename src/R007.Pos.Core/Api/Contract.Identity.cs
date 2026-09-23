@@ -68,7 +68,7 @@ public sealed record Device(
 
 public sealed record DeviceRegisterResult(Device Device, string DeviceToken);
 
-public sealed record Facility(Guid Id, string Code, string Name, string Kind, string Status);
+public sealed record Facility(Guid Id, Guid SiteId, string Code, string Name, string Kind, string Status);
 
 public sealed record OperatingRules(
     decimal? ApprovalThresholdAmount,

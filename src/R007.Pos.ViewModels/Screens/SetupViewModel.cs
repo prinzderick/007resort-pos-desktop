@@ -43,7 +43,7 @@ public sealed class SetupViewModel : ScreenViewModel
 
     /// <summary>Shown only in demo mode (<c>R007_MOCK=true</c>): the seeded registration codes.</summary>
     public string? DemoHint => _ctx.Options.Mock
-        ? "DEMO MODE (built-in mock server). Registration codes: RESTAURANT, CLUB (Indoor Club, NFC + PIN), RECEPTION (sports/pool)."
+        ? "DEMO MODE (built-in mock server). Registration codes: RESTAURANT (tables, kitchen), CLUB (open tabs, bar, cash session), RECEPTION (bookings, tickets, rentals)."
         : null;
 
     public string? ServerStatus

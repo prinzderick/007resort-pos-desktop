@@ -1,0 +1,28 @@
+{
+ "accessToken": "<access-token>",
+ "refreshToken": "<refresh-token>",
+ "expiresInSeconds": 900,
+ "staff": {
+  "id": "0192f6a0-0000-7000-8000-000000000401",
+  "displayName": "Amaka Okafor",
+  "staffNumber": "S-0042",
+  "roles": [
+   "WAIT_STAFF"
+  ],
+  "permissions": [
+   "order.create",
+   "order.line.add",
+   "order.line.remove_unsent",
+   "order.send",
+   "tab.view_own_facility"
+  ],
+  "facilityIds": [
+   "0192f6a0-0000-7000-8000-000000000101"
+  ]
+ },
+ "session": {
+  "id": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a90",
+  "expiresAt": "2026-09-23T22:15:30Z",
+  "deviceId": "0192f6a0-0000-7000-8000-000000000301"
+ }
+}

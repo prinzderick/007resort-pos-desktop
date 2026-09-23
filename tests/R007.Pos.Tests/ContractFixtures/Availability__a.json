@@ -1,0 +1,12 @@
+{
+ "resourceId": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a90",
+ "slots": [
+  {
+   "start": "2026-09-24T09:00:00Z",
+   "end": "2026-09-24T10:00:00Z",
+   "available": true,
+   "remainingCapacity": 1,
+   "price": "5000.0000"
+  }
+ ]
+}

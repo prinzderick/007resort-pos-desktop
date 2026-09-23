@@ -1,0 +1,22 @@
+{
+ "facilityId": "0192f6a0-0000-7000-8000-000000000101",
+ "cashSessionId": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a92",
+ "allocations": [
+  {
+   "orderId": "0192f6a0-0000-7000-8000-000000000601",
+   "amount": "9000.0000"
+  }
+ ],
+ "tenders": [
+  {
+   "tenderType": "CASH",
+   "amount": "4000.0000",
+   "tendered": "4000.0000"
+  },
+  {
+   "tenderType": "POS_TERMINAL",
+   "amount": "5000.0000",
+   "reference": "RRN123456789"
+  }
+ ]
+}

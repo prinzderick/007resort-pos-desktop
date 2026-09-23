@@ -160,6 +160,11 @@ public sealed class CashSessionViewModel : ScreenViewModel
     /// <summary>Every figure is the API's (expected, counted, variance, per-tender totals).</summary>
     public static IEnumerable<string> ShiftReportLines(CashierShiftReport r)
     {
+        if (r.Freshness.Stale)
+        {
+            yield return $"WARNING: figures may be out of date{(string.IsNullOrWhiteSpace(r.Freshness.StaleReason) ? string.Empty : " (" + r.Freshness.StaleReason + ")")}";
+        }
+
         yield return $"Cashier: {r.StaffName ?? r.StaffId.ToString()}";
         yield return $"Opened: {r.OpenedAt.ToOffset(TimeSpan.FromHours(1)):dd/MM/yy HH:mm}";
         if (r.ClosedAt is { } closed)

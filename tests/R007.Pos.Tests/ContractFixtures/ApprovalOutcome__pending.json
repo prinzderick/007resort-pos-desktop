@@ -1,0 +1,21 @@
+{
+ "status": "PENDING_APPROVAL",
+ "approval": {
+  "id": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a91",
+  "action": "order.void",
+  "entityType": "order",
+  "entityId": "0192f6a0-0000-7000-8000-000000000601",
+  "facilityId": "0192f6a0-0000-7000-8000-000000000101",
+  "status": "PENDING",
+  "requestedByStaffId": "0192f6a0-0000-7000-8000-000000000401",
+  "requestedByName": "Amaka O.",
+  "requestedAt": "2026-09-23T10:15:30.123456Z",
+  "reason": "Customer left",
+  "amount": "9000.0000",
+  "summary": "Void order RST1-000123 (9,000.00)",
+  "decidedByStaffId": null,
+  "decidedAt": null,
+  "decisionNote": null,
+  "requiredPermission": "order.void.approve"
+ }
+}
