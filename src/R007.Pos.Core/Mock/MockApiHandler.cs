@@ -110,6 +110,26 @@ public sealed partial class MockApiHandler : HttpMessageHandler
     /// <summary>Respond 503 to this many upcoming requests (to exercise retries).</summary>
     public int FailNextWith503 { get; set; }
 
+    /// <summary>
+    /// Apply this many upcoming requests on the server but drop the response (connection reset after commit): the
+    /// classic case where only an <c>Idempotency-Key</c> replay makes a retry safe.
+    /// </summary>
+    public int LoseNextResponses { get; set; }
+
+    /// <summary>Minimum client version the server advertises for <c>POS_TERMINAL</c> in <c>GET /system/info</c>.</summary>
+    public string MinPosVersion { get; set; } = "0.1.0";
+
+    public IReadOnlyList<Guid> PendingApprovalIds
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return [.. _approvals.Values.Where(a => a.Status == ApprovalStatuses.Pending).Select(a => a.Id)];
+            }
+        }
+    }
+
     public IReadOnlyList<RecordedRequest> Requests
     {
         get
@@ -206,6 +226,7 @@ public sealed partial class MockApiHandler : HttpMessageHandler
         }
 
         var body = request.Content is null ? [] : await request.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+        HttpResponseMessage response;
         lock (_gate)
         {
             if (FailNextWith503 > 0)
@@ -216,17 +237,26 @@ public sealed partial class MockApiHandler : HttpMessageHandler
 
             try
             {
-                return Dispatch(request, body);
+                response = Dispatch(request, body);
             }
             catch (MockProblem p)
             {
-                return ProblemResponse(p);
+                response = ProblemResponse(p);
             }
             catch (JsonException ex)
             {
-                return ProblemResponse(new MockProblem(422, "validation_failed", "Invalid request body", ex.Message));
+                response = ProblemResponse(new MockProblem(422, "validation_failed", "Invalid request body", ex.Message));
+            }
+
+            if (LoseNextResponses > 0)
+            {
+                LoseNextResponses--;
+                response.Dispose();
+                throw new HttpRequestException("Connection reset after the server applied the request (mock).");
             }
         }
+
+        return response;
     }
 
     // Infrastructure --------------------------------------------------------------------------------------------
@@ -339,7 +369,7 @@ public sealed partial class MockApiHandler : HttpMessageHandler
         // Public endpoints
         if (method == "GET" && Match(seg, "system/info", out _))
         {
-            return Json(200, new SystemInfo("007resort-api", "1.0.0", "local", null, Now, "Africa/Lagos", "NGN", new Dictionary<string, string> { ["POS_TERMINAL"] = "0.1.0" }, _options.VatRatePercent > 0), Ctx.SystemInfo);
+            return Json(200, new SystemInfo("007resort-api", "1.0.0", "local", null, Now, "Africa/Lagos", "NGN", new Dictionary<string, string> { ["POS_TERMINAL"] = MinPosVersion }, _options.VatRatePercent > 0), Ctx.SystemInfo);
         }
 
         if (method == "GET" && Match(seg, "health/live", out _))

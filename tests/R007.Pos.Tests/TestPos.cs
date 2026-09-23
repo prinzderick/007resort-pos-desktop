@@ -47,10 +47,11 @@ public sealed class TestPos : IDisposable
         Printer = new SimulatedReceiptPrinter();
         Identity = new InMemoryDeviceIdentityStore();
         Navigator = new ScriptedNavigator();
-        Ctx = new PosContext(Env.Api, Env.Auth, Env.Connectivity, Env.Endpoint, Queue, Emergency, Replay, Printer, new SimulatedCashDrawer(), Identity, Options, Env.Time, "hw-test", "0.1.0", (_, _) =>
+        Ctx = new PosContext(Env.Api, Env.Auth, Env.Connectivity, Env.Endpoint, Queue, Emergency, Replay, Printer, new SimulatedCashDrawer(), Identity, Options, Env.Time, "hw-test", "0.1.0", async (_, _) =>
         {
+            // Stands in for the poll interval: lets a concurrent "supervisor" act, and moves the clock so timeouts elapse.
             Env.Time.Advance(TimeSpan.FromSeconds(2));
-            return Task.CompletedTask;
+            await Task.Delay(2);
         });
     }
 

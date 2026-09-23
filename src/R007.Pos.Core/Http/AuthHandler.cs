@@ -13,7 +13,7 @@ public sealed class AuthHandler(AuthState auth, TimeProvider time) : DelegatingH
 {
     public const string DeviceTokenHeader = "X-Device-Token";
 
-    private static readonly string[] AnonymousPaths = ["/auth/staff/login", "/auth/staff/refresh", "/auth/staff/step-up", "/devices/register", "/health/"];
+    private static readonly string[] AnonymousPaths = ["/auth/staff/login", "/auth/staff/refresh", "/devices/register", "/system/info", "/health/"];
 
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
 

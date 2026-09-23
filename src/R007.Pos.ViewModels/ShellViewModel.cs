@@ -272,9 +272,11 @@ public sealed class ShellViewModel : ObservableObject, INavigator
     /// <summary>One background tick (public so tests can drive it without timers).</summary>
     public async Task TickAsync(CancellationToken ct = default)
     {
-        if (_ctx.Connectivity.State != ConnectivityState.Online && _ctx.IsRegistered)
+        if (_ctx.IsRegistered)
         {
-            await _ctx.Api.PingAsync(ct).ConfigureAwait(true); // the pipeline reports the result; Restored triggers a drain
+            // Cheap liveness probe every tick, so an outage is noticed before the next sale, not during it.
+            // The HTTP pipeline reports the result to the ConnectivityMonitor; Offline -> Online triggers the drain.
+            await _ctx.Api.PingAsync(ct).ConfigureAwait(true);
         }
 
         await RefreshPendingAsync().ConfigureAwait(true);

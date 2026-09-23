@@ -65,7 +65,7 @@ public sealed record TerminalFeatures(
             CanPriceOverride: Perm(Permissions.OrderPriceOverrideExecute) || Perm(Permissions.OrderPriceOverrideApprove),
             CanRefund: Perm(Permissions.RefundExecute) || Perm(Permissions.PaymentReversalExecute),
             CanReprint: Cap(Capabilities.ReceiptPrinting) && Perm(Permissions.ReceiptReprint),
-            CanViewHistory: Perm(Permissions.PaymentView) || Perm(Permissions.OrderView),
+            CanViewHistory: Perm(Permissions.PaymentView),
             CanManageCashSession: acceptsPayment && (Perm(Permissions.CashSessionOpen) || Perm(Permissions.CashSessionClose)),
             RequireCashSession: rules?.RequireCashSession == true,
             CanBook: (Cap(Capabilities.Booking) || Cap(Capabilities.Ticketing)) && Perm(Permissions.BookingCreate),
