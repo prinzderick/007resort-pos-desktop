@@ -87,6 +87,9 @@ public sealed class ShellViewModel : ObservableObject, INavigator
 
     public string FacilityName => _ctx.FacilityName;
 
+    /// <summary>True when running against the built-in mock server (no real backend): make that obvious on screen.</summary>
+    public bool IsDemoMode => _ctx.Options.Mock;
+
     public bool IsOffline => _ctx.Connectivity.IsOffline;
 
     public string ConnectivityText => _ctx.Connectivity.State switch

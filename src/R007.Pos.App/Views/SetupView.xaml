@@ -1,0 +1,37 @@
+<UserControl x:Class="R007.Pos.App.Views.SetupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:R007.Pos.ViewModels.Screens;assembly=R007.Pos.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:SetupViewModel}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="640" HorizontalAlignment="Center" Margin="0,40">
+            <TextBlock Style="{StaticResource Heading}" Text="Set up this terminal" />
+            <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,16"
+                       Text="Enter the server address and the one-time registration code IT gave you. The terminal then belongs to a facility; its screens follow that facility's configuration." />
+            <TextBlock Style="{StaticResource Muted}" Text="{Binding DemoHint}" Foreground="{StaticResource WarnBrush}" Margin="0,0,0,16"
+                       Visibility="{Binding DemoHint, Converter={StaticResource NullToVis}}" />
+
+            <TextBlock Text="Server address" Margin="0,8,0,4" />
+            <TextBox Text="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Text="Registration code" Margin="0,12,0,4" />
+            <TextBox Text="{Binding RegistrationCode, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Text="Name for this terminal" Margin="0,12,0,4" />
+            <TextBox Text="{Binding DeviceName, UpdateSourceTrigger=PropertyChanged}" />
+
+            <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                <Button Content="Test connection" Command="{Binding TestCommand}" />
+                <Button Style="{StaticResource PrimaryButton}" Content="Register this terminal" Command="{Binding RegisterCommand}" />
+            </StackPanel>
+
+            <TextBlock Style="{StaticResource Muted}" Text="{Binding ServerStatus}" Margin="0,12,0,0"
+                       Visibility="{Binding ServerStatus, Converter={StaticResource NullToVis}}" />
+            <TextBlock Style="{StaticResource ErrorText}" Text="{Binding Error}" Margin="0,12,0,0"
+                       Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,21 @@
+<UserControl x:Class="R007.Pos.App.Views.OpenTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:R007.Pos.ViewModels.Screens;assembly=R007.Pos.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:OpenTabViewModel}">
+    <StackPanel MinWidth="520">
+        <TextBlock Style="{StaticResource Heading}" Text="{Binding Title}" />
+        <TextBlock Text="Customer name" Style="{StaticResource Muted}" />
+        <TextBox Text="{Binding CustomerName, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBlock Text="Table (optional)" Style="{StaticResource Muted}" Margin="0,10,0,0" />
+        <ComboBox ItemsSource="{Binding FreeTables}" SelectedItem="{Binding Table}" DisplayMemberPath="Label" />
+        <TextBlock Style="{StaticResource ErrorText}" Text="{Binding Error}" Margin="0,10,0,0" Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Style="{StaticResource PrimaryButton}" Content="Open tab" Command="{Binding OpenCommand}" MinWidth="160" MinHeight="56" />
+            <Button Content="Cancel" Command="{Binding CancelCommand}" MinWidth="120" MinHeight="56" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

@@ -41,6 +41,11 @@ public sealed class SetupViewModel : ScreenViewModel
         set => SetProperty(ref _deviceName, value);
     }
 
+    /// <summary>Shown only in demo mode (<c>R007_MOCK=true</c>): the seeded registration codes.</summary>
+    public string? DemoHint => _ctx.Options.Mock
+        ? "DEMO MODE (built-in mock server). Registration codes: RESTAURANT, CLUB (Indoor Club, NFC + PIN), RECEPTION (sports/pool)."
+        : null;
+
     public string? ServerStatus
     {
         get => _serverStatus;

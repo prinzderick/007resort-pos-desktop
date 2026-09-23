@@ -1,0 +1,54 @@
+<UserControl x:Class="R007.Pos.App.Views.LoginView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:R007.Pos.ViewModels.Screens;assembly=R007.Pos.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:LoginViewModel}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="420" HorizontalAlignment="Center" Margin="0,30">
+            <TextBlock Style="{StaticResource Heading}" Text="Sign in" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding Prompt}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,16" />
+
+            <StackPanel Visibility="{Binding ShowStaffNumber, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="Staff number" Margin="0,0,0,4" />
+                <TextBox Text="{Binding StaffNumber, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" />
+            </StackPanel>
+
+            <StackPanel Visibility="{Binding ShowPinPad, Converter={StaticResource BoolToVis}}">
+                <Border Style="{StaticResource Card}" Background="{StaticResource PanelAltBrush}" MinHeight="56">
+                    <TextBlock Text="{Binding PinMasked}" FontSize="28" HorizontalAlignment="Center" />
+                </Border>
+                <UniformGrid Columns="3">
+                    <Button Content="1" Command="{Binding KeyCommand}" CommandParameter="1" FontSize="24" MinHeight="64" />
+                    <Button Content="2" Command="{Binding KeyCommand}" CommandParameter="2" FontSize="24" MinHeight="64" />
+                    <Button Content="3" Command="{Binding KeyCommand}" CommandParameter="3" FontSize="24" MinHeight="64" />
+                    <Button Content="4" Command="{Binding KeyCommand}" CommandParameter="4" FontSize="24" MinHeight="64" />
+                    <Button Content="5" Command="{Binding KeyCommand}" CommandParameter="5" FontSize="24" MinHeight="64" />
+                    <Button Content="6" Command="{Binding KeyCommand}" CommandParameter="6" FontSize="24" MinHeight="64" />
+                    <Button Content="7" Command="{Binding KeyCommand}" CommandParameter="7" FontSize="24" MinHeight="64" />
+                    <Button Content="8" Command="{Binding KeyCommand}" CommandParameter="8" FontSize="24" MinHeight="64" />
+                    <Button Content="9" Command="{Binding KeyCommand}" CommandParameter="9" FontSize="24" MinHeight="64" />
+                    <Button Content="Clear" Command="{Binding ClearCommand}" MinHeight="64" />
+                    <Button Content="0" Command="{Binding KeyCommand}" CommandParameter="0" FontSize="24" MinHeight="64" />
+                    <Button Content="Back" Command="{Binding BackspaceCommand}" MinHeight="64" />
+                </UniformGrid>
+                <Button Style="{StaticResource PrimaryButton}" Content="Sign in" Command="{Binding SignInCommand}" IsDefault="True" MinHeight="60" FontSize="20" />
+            </StackPanel>
+
+            <Border Style="{StaticResource Card}" Background="{StaticResource PanelAltBrush}" Margin="0,16,0,0">
+                <StackPanel>
+                    <TextBlock Text="Card reader" FontWeight="SemiBold" />
+                    <TextBlock Style="{StaticResource Muted}" Text="Tap your staff card on the reader. The card reads in automatically." />
+                    <Button Content="Cancel card / start over" Command="{Binding CancelCardCommand}" HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource ErrorText}" Text="{Binding Error}" Margin="0,12,0,0"
+                       Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+            <TextBlock Style="{StaticResource Muted}" Text="{Binding DemoHint}" Foreground="{StaticResource WarnBrush}" Margin="0,16,0,0"
+                       Visibility="{Binding DemoHint, Converter={StaticResource NullToVis}}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

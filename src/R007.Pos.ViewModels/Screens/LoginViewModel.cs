@@ -87,6 +87,11 @@ public sealed class LoginViewModel : ScreenViewModel, IScanTarget
         }
     }
 
+    /// <summary>Shown only in demo mode: the seeded staff (PIN / card).</summary>
+    public string? DemoHint => _ctx.Options.Mock
+        ? $"DEMO staff (staff number / PIN): S-1001 cashier / {R007.Pos.Core.Mock.MockData.CashierPin}, S-1002 waiter / {R007.Pos.Core.Mock.MockData.WaiterPin}, S-1003 supervisor / {R007.Pos.Core.Mock.MockData.SupervisorPin}. Cards: {R007.Pos.Core.Mock.MockData.CashierNfc} (cashier), {R007.Pos.Core.Mock.MockData.SupervisorNfc} (supervisor)."
+        : null;
+
     public string PinMasked => new('●', Pin.Length);
 
     public bool RequiresNfcAndPin => _ctx.Options.RequireNfcAndPin;

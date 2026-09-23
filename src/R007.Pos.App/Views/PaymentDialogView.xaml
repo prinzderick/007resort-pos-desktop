@@ -1,0 +1,118 @@
+<UserControl x:Class="R007.Pos.App.Views.PaymentDialogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:R007.Pos.ViewModels.Screens;assembly=R007.Pos.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:PaymentViewModel}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MinWidth="720">
+        <StackPanel>
+            <TextBlock Style="{StaticResource Heading}" Text="{Binding Title}" />
+            <TextBlock Text="{Binding Label}" Style="{StaticResource Muted}" />
+            <TextBlock Text="{Binding AmountDueText}" FontSize="30" FontWeight="Bold" Margin="0,4,0,8" />
+            <TextBlock Foreground="{StaticResource WarnBrush}" FontWeight="Bold" TextWrapping="Wrap"
+                       Text="Amount is an ESTIMATE while the server is unreachable. The server prices the order when it is confirmed."
+                       Visibility="{Binding AmountIsEstimate, Converter={StaticResource BoolToVis}}" />
+
+            <StackPanel Visibility="{Binding Paid, Converter={StaticResource InvBoolToVis}}">
+                <StackPanel Visibility="{Binding CanEditAmount, Converter={StaticResource BoolToVis}}" Margin="0,0,0,8">
+                    <TextBlock Text="Amount to pay now (less than the balance = partial settle)" Style="{StaticResource Muted}" />
+                    <TextBox Text="{Binding AmountToPayText, UpdateSourceTrigger=PropertyChanged}" MaxWidth="260" HorizontalAlignment="Left" />
+                </StackPanel>
+
+                <TextBlock Text="Payment method" Style="{StaticResource Muted}" />
+                <ItemsControl ItemsSource="{Binding Methods}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding}" MinWidth="130"
+                                    Command="{Binding DataContext.SelectMethodCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding Method}" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="4,2" />
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                        <TextBlock Text="This tender's amount" Style="{StaticResource Muted}" />
+                        <TextBox Text="{Binding TenderAmountText, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="0,0,6,0" Visibility="{Binding IsCash, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Cash handed over (change is worked out by the server)" Style="{StaticResource Muted}" TextWrapping="Wrap" />
+                        <TextBox Text="{Binding TenderedText, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,6,0" Visibility="{Binding NeedsReference, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Terminal / transfer reference" Style="{StaticResource Muted}" />
+                        <TextBox Text="{Binding Reference, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <Button Grid.Column="3" Content="Add tender" Command="{Binding AddTenderCommand}" VerticalAlignment="Bottom" />
+                </Grid>
+
+                <ItemsControl ItemsSource="{Binding Tenders}" Margin="0,10,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:TenderEntry}">
+                            <Border Style="{StaticResource Card}" Padding="8" Margin="0,2">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="Remove" MinHeight="36"
+                                            Command="{Binding DataContext.RemoveTenderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}" />
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding AmountText}" FontWeight="Bold" Margin="8,0" />
+                                    <TextBlock Text="{Binding Display}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Muted}" Margin="10,0" />
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <DockPanel Margin="0,6">
+                    <TextBlock Text="Entered" Style="{StaticResource Muted}" />
+                    <TextBlock Text="{Binding TenderedTotalText}" HorizontalAlignment="Right" />
+                </DockPanel>
+                <DockPanel>
+                    <TextBlock Text="Still to enter" Style="{StaticResource Muted}" />
+                    <TextBlock Text="{Binding RemainingText}" HorizontalAlignment="Right" FontWeight="Bold" />
+                </DockPanel>
+
+                <Expander Header="Paystack pay-link (customer pays on their phone)" Foreground="{StaticResource TextBrush}" Margin="0,10,0,0"
+                          Visibility="{Binding CanUsePaystack, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Margin="0,6">
+                        <TextBlock Text="Customer email" Style="{StaticResource Muted}" />
+                        <TextBox Text="{Binding PaystackEmail, UpdateSourceTrigger=PropertyChanged}" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Create pay-link" Command="{Binding PaystackStartCommand}" />
+                            <Button Content="Check payment" Command="{Binding PaystackVerifyCommand}" />
+                        </StackPanel>
+                        <TextBox Text="{Binding PaystackUrl, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Visibility="{Binding PaystackUrl, Converter={StaticResource NullToVis}}" />
+                        <TextBlock Text="{Binding PaystackReference, StringFormat=Reference: {0}}" Style="{StaticResource Muted}" Visibility="{Binding PaystackReference, Converter={StaticResource NullToVis}}" />
+                        <TextBlock Text="{Binding PaystackStatus}" TextWrapping="Wrap" Visibility="{Binding PaystackStatus, Converter={StaticResource NullToVis}}" />
+                    </StackPanel>
+                </Expander>
+            </StackPanel>
+
+            <StackPanel Visibility="{Binding Paid, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="PAID" FontSize="36" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" />
+                <TextBlock Text="{Binding ChangeText}" FontSize="26" FontWeight="Bold" Visibility="{Binding ChangeText, Converter={StaticResource NullToVis}}" />
+                <TextBlock Text="{Binding PrintMessage}" Style="{StaticResource Muted}" />
+            </StackPanel>
+
+            <TextBlock Style="{StaticResource ErrorText}" Text="{Binding Error}" Margin="0,10,0,0" Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+            <TextBlock Foreground="{StaticResource WarnBrush}" FontWeight="Bold" TextWrapping="Wrap" Text="{Binding Info}" Margin="0,10,0,0" Visibility="{Binding HasInfo, Converter={StaticResource BoolToVis}}" />
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                <Button Style="{StaticResource PrimaryButton}" Content="Take payment" Command="{Binding PayCommand}" MinWidth="200" MinHeight="60" FontSize="20"
+                        Visibility="{Binding Paid, Converter={StaticResource InvBoolToVis}}" />
+                <Button Content="Close" Command="{Binding CancelCommand}" MinWidth="120" MinHeight="60" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

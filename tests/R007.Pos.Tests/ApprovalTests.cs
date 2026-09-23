@@ -1,4 +1,5 @@
 using R007.Pos.Core.Api;
+using R007.Pos.Core.Configuration;
 using R007.Pos.Core.Mock;
 using R007.Pos.ViewModels.Screens;
 using R007.Pos.ViewModels.Services;
@@ -7,9 +8,9 @@ namespace R007.Pos.Tests;
 
 public sealed class ApprovalTests
 {
-    private static async Task<(TestPos Pos, SellViewModel Sell, CartLineViewModel Line)> SellWithLineAsync(string staff = "S-1001", string pin = MockData.CashierPin)
+    private static async Task<(TestPos Pos, SellViewModel Sell, CartLineViewModel Line)> SellWithLineAsync(string staff = "S-1001", string pin = MockData.CashierPin, PosOptions? options = null)
     {
-        var pos = new TestPos();
+        var pos = new TestPos(options);
         await pos.SignInAsync(staffNumber: staff, pin: pin);
         var sell = pos.NewSell();
         await sell.AddProductCommand.ExecuteAsync(new ProductTile(pos.Product(MockData.Jollof)));
@@ -98,14 +99,14 @@ public sealed class ApprovalTests
     [Fact]
     public async Task NoSupervisorResponds_TimesOut_AndTheRequestStaysPending()
     {
-        var (pos, sell, _) = await SellWithLineAsync();
+        var (pos, sell, _) = await SellWithLineAsync(options: new PosOptions { Approvals = new ApprovalOptions { PollIntervalSeconds = 2, WaitTimeoutMinutes = 1 } });
         using var _ = pos;
         SensitiveActionViewModel? modal = null;
         pos.Navigator.Script = async m =>
         {
             modal = (SensitiveActionViewModel)m;
             modal.Reason = "Spoiled";
-            await modal.SubmitCommand.ExecuteAsync(); // the test delay advances the clock 2s per poll until the 10 minute timeout
+            await modal.SubmitCommand.ExecuteAsync(); // the test delay advances the clock 2s per poll until the 1 minute timeout
         };
 
         await sell.VoidCommand.ExecuteAsync();

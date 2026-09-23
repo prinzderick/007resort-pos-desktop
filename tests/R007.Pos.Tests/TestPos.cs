@@ -40,7 +40,8 @@ public sealed class TestPos : IDisposable
     {
         Directory.CreateDirectory(_dir);
         Env = new TestEnv(retry: retry);
-        Options = options ?? new PosOptions();
+        // A long wait window in *fake* time (2 s per poll) so a slow CI machine cannot time an approval out before the test acts.
+        Options = options ?? new PosOptions { Approvals = new ApprovalOptions { PollIntervalSeconds = 2, WaitTimeoutMinutes = 60 } };
         Queue = new EncryptedFileOfflineQueue(Path.Combine(_dir, "queue.bin"), new InsecureKeyProtector(), Env.Time, new OfflineQueueOptions { MaxEntries = 20, MaxAge = TimeSpan.FromMinutes(30) });
         Emergency = new EmergencyQueue(Queue, Env.Auth, Env.Time);
         Replay = new QueueReplayService(Queue, Env.Http, Env.Auth);
@@ -51,7 +52,7 @@ public sealed class TestPos : IDisposable
         {
             // Stands in for the poll interval: lets a concurrent "supervisor" act, and moves the clock so timeouts elapse.
             Env.Time.Advance(TimeSpan.FromSeconds(2));
-            await Task.Delay(2);
+            await Task.Delay(4);
         });
     }
 

@@ -38,6 +38,7 @@ public sealed class MainViewModel : ScreenViewModel
         Cash = new CashSessionViewModel(ctx);
         History = new HistoryViewModel(ctx, nav);
         Queue = new QueueViewModel(ctx);
+        SelectCommand = new AsyncRelayCommand(p => p is NavItem item ? SelectAsync(item) : Task.CompletedTask, null, SetError);
         Tables.TargetChosen += async (_, target) =>
         {
             try
@@ -71,6 +72,8 @@ public sealed class MainViewModel : ScreenViewModel
     public QueueViewModel Queue { get; }
 
     public ObservableCollection<NavItem> Items { get; } = [];
+
+    public AsyncRelayCommand SelectCommand { get; }
 
     public NavItem? Selected
     {
