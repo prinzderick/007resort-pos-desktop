@@ -22,12 +22,18 @@ public static class ReceiptDocumentBuilder
         void Pair(string left, string right, bool bold = false) => lines.Add(new ReceiptLine(TwoColumns(left, right, width), ReceiptAlignment.Left, bold));
         string Money(decimal amount) => MoneyFormat.Display(amount, r.Currency);
 
+        reprint |= r.Duplicate == true; // the node marks a counted reprint DUPLICATE in the snapshot it returns
         if (reprint)
         {
             Center("*** DUPLICATE ***", bold: true);
         }
 
-        Center(r.SiteName ?? "007 Resort & Spa", bold: true, big: true);
+        Center(r.SiteName ?? r.BusinessName ?? "007 Resort & Spa", bold: true, big: true);
+        if (!string.IsNullOrWhiteSpace(r.BusinessName) && !string.Equals(r.SiteName, r.BusinessName, StringComparison.Ordinal))
+        {
+            Center(r.BusinessName); // the legal/business name printed under the site title (may be long: normal size, wraps)
+        }
+
         Center(r.FacilityName, bold: true);
         if (!string.IsNullOrWhiteSpace(r.SiteAddress))
         {
@@ -44,6 +50,11 @@ public static class ReceiptDocumentBuilder
         if (!string.IsNullOrWhiteSpace(r.CashierName))
         {
             Left($"Cashier: {r.CashierName}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(r.Terminal))
+        {
+            Left($"Terminal: {r.Terminal}");
         }
 
         if (!string.IsNullOrWhiteSpace(r.TableLabel))
@@ -80,11 +91,21 @@ public static class ReceiptDocumentBuilder
         foreach (var tender in r.Tenders)
         {
             Pair(TenderLabel(tender), Money(tender.Amount));
+            if (tender.TenderType == TenderTypes.Cash && tender.Tendered is { } handed && handed != tender.Amount)
+            {
+                Pair("  Tendered", Money(handed));
+            }
         }
 
         if (r.ChangeGiven is { } change and > 0m)
         {
             Pair("Change", Money(change));
+        }
+
+        // A partial settlement: say what is still owed (the node's figure), so a part-paid receipt is never mistaken for a paid one.
+        if (r.BalanceDue is { } balance and > 0m)
+        {
+            Pair("BALANCE DUE", Money(balance), bold: true);
         }
 
         Left(rule);

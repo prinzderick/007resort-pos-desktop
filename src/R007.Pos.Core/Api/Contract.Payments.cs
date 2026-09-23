@@ -99,7 +99,7 @@ public sealed record PaystackInitResult(Guid PaymentId, string Reference, string
 
 public sealed record ReceiptItem(string Name, int Quantity, decimal UnitPrice, decimal LineTotal);
 
-public sealed record ReceiptTender(string TenderType, decimal Amount, string? Reference);
+public sealed record ReceiptTender(string TenderType, decimal Amount, string? Reference, decimal? Tendered = null);
 
 /// <summary>Structured receipt from the API. The POS lays it out for the 80 mm printer; it does not compute any amount.</summary>
 public sealed record Receipt(
@@ -124,7 +124,13 @@ public sealed record Receipt(
     string? VatNumber,
     string? QrPayload,
     int? ReprintCount,
-    string? Footer);
+    string? Footer,
+    decimal? AmountPaid = null,
+    decimal? BalanceDue = null,
+    bool? Duplicate = null,
+    string? BusinessName = null,
+    IReadOnlyList<string>? PrintLines = null,
+    string? Terminal = null);
 
 public sealed record CashSession(
     Guid Id,
@@ -136,10 +142,21 @@ public sealed record CashSession(
     decimal? CountedCash,
     decimal? Variance,
     DateTimeOffset OpenedAt,
-    DateTimeOffset? ClosedAt)
+    DateTimeOffset? ClosedAt,
+    CashSessionTotals? Totals = null)
 {
     public bool IsOpen => Status == "OPEN";
 }
+
+/// <summary>Running totals the node keeps on the session (what a cashier may see without <c>report.view</c>).</summary>
+public sealed record CashSessionTotals(
+    decimal? CashSales,
+    decimal? CashRefunds,
+    decimal? CashReversals,
+    decimal? PaidIn,
+    decimal? PaidOut,
+    decimal? Drops,
+    [property: System.Text.Json.Serialization.JsonConverter(typeof(R007.Pos.Core.Money.DecimalMapJsonConverter))] IReadOnlyDictionary<string, decimal>? NonCash);
 
 public sealed record OpenCashSessionRequest(Guid FacilityId, decimal OpeningFloat);
 

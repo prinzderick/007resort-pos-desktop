@@ -265,6 +265,18 @@ public sealed class ContractConformanceTests
         Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems));
     }
 
+    /// <summary>
+    /// Response properties the real node sends (verified live, see docs/REAL_API_TEST_REPORT.md) that the OpenAPI document does not list yet.
+    /// They are additive: the POS models them because it needs them, and they must stay listed here so the deviation stays visible.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> AdditiveNodeFields = new(StringComparer.Ordinal)
+    {
+        ["Receipt"] = ["AmountPaid", "BalanceDue", "Duplicate", "BusinessName", "PrintLines", "Terminal"],
+        ["OperatingRules"] = ["PaymentTiming"],
+        ["Entitlement"] = ["GroupEntitlementIds"],
+        ["CashSession"] = ["Totals"],
+    };
+
     [Fact]
     public void EveryPropertyWeModelOnAResponse_ExistsInTheSpec_SoNothingIsMisspelt()
     {
@@ -288,7 +300,7 @@ public sealed class ContractConformanceTests
                     continue;
                 }
 
-                if (!spec.Contains(lower))
+                if (!spec.Contains(lower) && !(AdditiveNodeFields.TryGetValue(schema, out var extra) && extra.Contains(property.Name)))
                 {
                     problems.Add($"{schema}: '{property.Name}' is not a property in the spec");
                 }

@@ -58,6 +58,7 @@ public sealed record Entitlement(
     Guid? BookingId,
     string? HolderName,
     IReadOnlyList<EntitlementItem> Items,
-    DateTimeOffset IssuedAt);
+    DateTimeOffset IssuedAt,
+    IReadOnlyList<Guid>? GroupEntitlementIds = null);
 
 public sealed record IssueEntitlementRequest(Guid? OrderId = null, Guid? BookingId = null);

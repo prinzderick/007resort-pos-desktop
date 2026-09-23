@@ -19,6 +19,7 @@ public sealed class CashSessionViewModel : ScreenViewModel
     private string _note = string.Empty;
     private CashierShiftReport? _report;
     private CashSession? _lastClosed;
+    private IReadOnlyList<string>? _summary;
 
     public CashSessionViewModel(PosContext ctx)
     {
@@ -26,7 +27,7 @@ public sealed class CashSessionViewModel : ScreenViewModel
         OpenCommand = new AsyncRelayCommand(OpenAsync, () => !_ctx.HasOpenCashSession && _ctx.Features.CanManageCashSession, SetError);
         CloseCommand = new AsyncRelayCommand(CloseAsync, () => _ctx.HasOpenCashSession, SetError);
         ReportCommand = new AsyncRelayCommand(ReportAsync, () => (_ctx.CashSession ?? _lastClosed) is not null && _ctx.Features.CanViewShiftReport, SetError);
-        PrintReportCommand = new AsyncRelayCommand(PrintReportAsync, () => _report is not null, SetError);
+        PrintReportCommand = new AsyncRelayCommand(PrintReportAsync, () => _report is not null || _summary is not null, SetError);
         _ctx.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(PosContext.CashSession))
@@ -63,6 +64,9 @@ public sealed class CashSessionViewModel : ScreenViewModel
     }
 
     public string VarianceText { get; private set; } = string.Empty;
+
+    /// <summary>Id of the session this screen closed last (for reports).</summary>
+    public Guid LastClosedId => _lastClosed?.Id ?? Guid.Empty;
 
     public AsyncRelayCommand OpenCommand { get; }
 
@@ -131,6 +135,18 @@ public sealed class CashSessionViewModel : ScreenViewModel
             {
                 await LoadReportAsync(closed.Id).ConfigureAwait(true);
             }
+            else
+            {
+                // A cashier holds cash_session.view but not report.view (the node 403s the shift report): show the session's own summary.
+                ReportLines.Clear();
+                foreach (var line in SessionSummaryLines(closed))
+                {
+                    ReportLines.Add(line);
+                }
+
+                _summary = [.. ReportLines];
+                PrintReportCommand.RaiseCanExecuteChanged();
+            }
         }).ConfigureAwait(true);
     }
 
@@ -152,9 +168,45 @@ public sealed class CashSessionViewModel : ScreenViewModel
     private async Task PrintReportAsync()
     {
         var doc = new ReceiptDocument(
-            [new ReceiptLine("SHIFT REPORT", ReceiptAlignment.Center, true), .. ShiftReportLines(_report!).Select(l => new ReceiptLine(l))],
+            [new ReceiptLine("SHIFT REPORT", ReceiptAlignment.Center, true), .. (_report is not null ? ShiftReportLines(_report) : _summary!).Select(l => new ReceiptLine(l))],
             true);
         Info = (await _ctx.Printing.PrintAsync(doc).ConfigureAwait(true)).Message;
+    }
+
+    /// <summary>Summary of a closed session from the session resource itself (no <c>report.view</c> needed). Every figure is the node's.</summary>
+    public static IEnumerable<string> SessionSummaryLines(CashSession s)
+    {
+        yield return $"Opened: {s.OpenedAt.ToOffset(TimeSpan.FromHours(1)):dd/MM/yy HH:mm}";
+        if (s.ClosedAt is { } closed)
+        {
+            yield return $"Closed: {closed.ToOffset(TimeSpan.FromHours(1)):dd/MM/yy HH:mm}";
+        }
+
+        yield return $"Opening float: {MoneyFormat.Display(s.OpeningFloat)}";
+        if (s.Totals is { } t)
+        {
+            yield return $"CASH sales: {MoneyFormat.Display(t.CashSales ?? 0m)}";
+            foreach (var (tender, amount) in t.NonCash ?? new Dictionary<string, decimal>())
+            {
+                yield return $"{tender}: {MoneyFormat.Display(amount)}";
+            }
+
+            if (t.CashRefunds is { } refunds and > 0m)
+            {
+                yield return $"Cash refunds: {MoneyFormat.Display(refunds)}";
+            }
+        }
+
+        yield return $"Expected cash: {MoneyFormat.Display(s.ExpectedCash ?? 0m)}";
+        if (s.CountedCash is { } counted)
+        {
+            yield return $"Declared cash: {MoneyFormat.Display(counted)}";
+        }
+
+        if (s.Variance is { } variance)
+        {
+            yield return $"Variance: {MoneyFormat.Display(variance)}";
+        }
     }
 
     /// <summary>Every figure is the API's (expected, counted, variance, per-tender totals).</summary>

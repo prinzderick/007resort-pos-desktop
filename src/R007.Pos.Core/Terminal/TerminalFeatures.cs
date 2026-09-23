@@ -80,7 +80,7 @@ public sealed record TerminalFeatures(
             CanIssueTickets: Cap(Capabilities.Ticketing) && Perm(Permissions.TicketIssue),
             CanLookupCustomers: Perm(Permissions.MembershipView),
             CanDecideApprovals: Permissions.ApprovalDecisions.Any(Perm),
-            CanViewShiftReport: Perm(Permissions.CashSessionView) || Perm(Permissions.ReportView) || Perm(Permissions.CashSessionClose),
+            CanViewShiftReport: Perm(Permissions.ReportView), // GET /reports/cashier-shift needs report.view (a cashier holds cash_session.view but not report.view)
             CanScanBarcodes: Cap(Capabilities.BarcodeSales),
             AllowOfflineOrders: rules?.AllowOfflineOrders == true,
             OfflinePayments: rules?.AllowOfflinePayments ?? OfflinePaymentPolicy.None,
