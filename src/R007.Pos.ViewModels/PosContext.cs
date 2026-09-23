@@ -20,6 +20,7 @@ public sealed record ServerCheck(bool Ok, string Message, SystemInfo? Info);
 /// </summary>
 public sealed class PosContext : ObservableObject
 {
+    private readonly SynchronizationContext? _sync = SynchronizationContext.Current;
     private DeviceIdentity? _identity;
     private FacilityCapabilities? _capabilities;
     private string _facilityName = string.Empty;
@@ -195,7 +196,7 @@ public sealed class PosContext : ObservableObject
     {
         try
         {
-            var info = await Api.GetSystemInfoAsync(ct).ConfigureAwait(false);
+            var info = await Api.GetSystemInfoAsync(ct).ConfigureAwait(true);
             ServerInfo = info;
             if (info.MinClientVersion is { } min
                 && (min.TryGetValue("POS_TERMINAL", out var required) || min.TryGetValue("pos", out required))
@@ -224,7 +225,7 @@ public sealed class PosContext : ObservableObject
             var result = await Api.RegisterDeviceAsync(
                 new DeviceRegisterRequest(deviceName, DeviceKinds.PosTerminal, HardwareId, registrationCode.Trim(), "windows", AppVersion),
                 IdempotencyKeys.New(),
-                ct).ConfigureAwait(false);
+                ct).ConfigureAwait(true);
 
             var facilityId = result.Device.FacilityId ?? result.Device.HomeFacilityId
                 ?? throw new InvalidOperationException("The server did not assign this terminal to a facility. Ask IT to assign one.");
@@ -233,7 +234,7 @@ public sealed class PosContext : ObservableObject
             Auth.SetDeviceToken(result.DeviceToken);
             try
             {
-                facilityName = (await Api.GetFacilityAsync(facilityId, ct).ConfigureAwait(false)).Name;
+                facilityName = (await Api.GetFacilityAsync(facilityId, ct).ConfigureAwait(true)).Name;
             }
             catch (ApiException)
             {
@@ -264,7 +265,7 @@ public sealed class PosContext : ObservableObject
 
     public async Task LoadFacilityAsync(CancellationToken ct = default)
     {
-        var caps = await Api.GetCapabilitiesAsync(FacilityId, ct).ConfigureAwait(false);
+        var caps = await Api.GetCapabilitiesAsync(FacilityId, ct).ConfigureAwait(true);
         Capabilities = caps;
         var rules = caps.OperatingRules;
         Emergency.Policy = new OfflinePolicy(rules?.AllowOfflineOrders == true, rules?.AllowOfflinePayments ?? OfflinePaymentPolicy.None);
@@ -273,8 +274,8 @@ public sealed class PosContext : ObservableObject
 
     public async Task LoadCatalogAsync(CancellationToken ct = default)
     {
-        var categories = await Api.GetCategoriesAsync(ct).ConfigureAwait(false);
-        var products = await Api.GetProductsAsync(FacilityId, null, ct).ConfigureAwait(false);
+        var categories = await Api.GetCategoriesAsync(ct).ConfigureAwait(true);
+        var products = await Api.GetProductsAsync(FacilityId, null, ct).ConfigureAwait(true);
         Categories = [.. categories.OrderBy(c => c.SortOrder ?? int.MaxValue).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase)];
         Products = [.. products.Where(p => p.Active)];
     }
@@ -287,7 +288,7 @@ public sealed class PosContext : ObservableObject
             return;
         }
 
-        CashSession = await Api.GetOpenCashSessionAsync(FacilityId, Staff.Id, ct).ConfigureAwait(false);
+        CashSession = await Api.GetOpenCashSessionAsync(FacilityId, Staff.Id, ct).ConfigureAwait(true);
     }
 
     public async Task SignOutAsync()
@@ -296,7 +297,7 @@ public sealed class PosContext : ObservableObject
         {
             if (Auth.IsSignedIn)
             {
-                await Api.LogoutAsync().ConfigureAwait(false);
+                await Api.LogoutAsync().ConfigureAwait(true);
             }
         }
         catch (Exception ex) when (ex is ApiException or ApiUnavailableException)
@@ -312,4 +313,21 @@ public sealed class PosContext : ObservableObject
 
     public void RecomputeFeatures() =>
         Features = TerminalFeatures.From(Capabilities, Auth.Staff, Options.RequireNfcAndPin);
+
+    /// <summary>
+    /// State here is shared by every screen, and some changes originate on pool threads (a token refresh inside the HTTP
+    /// pipeline updates <see cref="AuthState"/>). Screens rebuild collections and raise command state in response, which WPF
+    /// only allows on the UI thread, so change notifications are marshalled to the context this object was created on.
+    /// </summary>
+    protected override void OnPropertyChanged(string? propertyName = null)
+    {
+        if (_sync is null || SynchronizationContext.Current == _sync)
+        {
+            base.OnPropertyChanged(propertyName);
+        }
+        else
+        {
+            _sync.Post(_ => base.OnPropertyChanged(propertyName), null);
+        }
+    }
 }

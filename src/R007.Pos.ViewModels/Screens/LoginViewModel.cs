@@ -269,27 +269,27 @@ public sealed class LoginViewModel : ScreenViewModel, IScanTarget
     private async Task<AuthResult> SignInWithCardAndPinAsync(string uid, string pin)
     {
         var auth = _ctx.Auth;
-        var cardOnly = await _ctx.Api.LoginAsync(new StaffLoginRequest(CredentialTypes.NfcCard, null, uid)).ConfigureAwait(false);
+        var cardOnly = await _ctx.Api.LoginAsync(new StaffLoginRequest(CredentialTypes.NfcCard, null, uid)).ConfigureAwait(true);
         auth.SignIn(cardOnly, _ctx.Time.GetUtcNow()); // provisional: only so it can be revoked below
 
         try
         {
             var number = cardOnly.Staff.StaffNumber
                 ?? throw new InvalidOperationException("This card's owner has no staff number, so the PIN cannot be checked.");
-            var full = await _ctx.Api.LoginAsync(new StaffLoginRequest(CredentialTypes.Pin, number, pin)).ConfigureAwait(false);
+            var full = await _ctx.Api.LoginAsync(new StaffLoginRequest(CredentialTypes.Pin, number, pin)).ConfigureAwait(true);
             if (full.Staff.Id != cardOnly.Staff.Id)
             {
                 throw new InvalidOperationException("Card and PIN belong to different people.");
             }
 
-            await _ctx.Api.LogoutAsync().ConfigureAwait(false); // revoke the card-only session
+            await _ctx.Api.LogoutAsync().ConfigureAwait(true); // revoke the card-only session
             return full;
         }
         catch
         {
             try
             {
-                await _ctx.Api.LogoutAsync().ConfigureAwait(false);
+                await _ctx.Api.LogoutAsync().ConfigureAwait(true);
             }
             catch (Exception ex) when (ex is ApiException or ApiUnavailableException)
             {

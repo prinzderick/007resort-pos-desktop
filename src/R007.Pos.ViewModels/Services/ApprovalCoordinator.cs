@@ -39,7 +39,7 @@ public sealed class ApprovalCoordinator(IR007ApiClient api, ApprovalOptions opti
             var hint = _hints.GetOrAdd(approval.Id, _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
             try
             {
-                await Task.WhenAny(_delay(interval, ct), hint.Task).ConfigureAwait(false);
+                await Task.WhenAny(_delay(interval, ct), hint.Task).ConfigureAwait(true);
                 ct.ThrowIfCancellationRequested();
             }
             finally
@@ -49,7 +49,7 @@ public sealed class ApprovalCoordinator(IR007ApiClient api, ApprovalOptions opti
 
             try
             {
-                current = await api.GetApprovalAsync(approval.Id, ct).ConfigureAwait(false);
+                current = await api.GetApprovalAsync(approval.Id, ct).ConfigureAwait(true);
                 onUpdate?.Invoke(current);
             }
             catch (ApiUnavailableException)
