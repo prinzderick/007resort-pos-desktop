@@ -34,8 +34,16 @@ public sealed record TerminalFeatures(
     bool CanScanBarcodes,
     bool AllowOfflineOrders,
     string OfflinePayments,
-    bool RequiresNfcAndPin)
+    bool RequiresNfcAndPin,
+    bool CanServe = false,
+    string? PaymentTiming = null)
 {
+    /// <summary>The facility takes payment before service (Reception): a DRAFT order may be paid.</summary>
+    public bool PayFirst => string.Equals(PaymentTiming, PaymentTimings.PayFirst, StringComparison.Ordinal);
+
+    /// <summary>The facility takes payment after service (Restaurant / bars): only a SERVED order can be paid, so the cashier marks it served first.</summary>
+    public bool PayAfterService => PaymentTiming is not null && !PayFirst;
+
     public static TerminalFeatures None { get; } = From(null, null, false);
 
     public bool AnyPosScreen => CanSell || ShowTables || CanBook || CanManageCashSession || CanViewHistory || CanDecideApprovals;
@@ -76,6 +84,8 @@ public sealed record TerminalFeatures(
             CanScanBarcodes: Cap(Capabilities.BarcodeSales),
             AllowOfflineOrders: rules?.AllowOfflineOrders == true,
             OfflinePayments: rules?.AllowOfflinePayments ?? OfflinePaymentPolicy.None,
-            RequiresNfcAndPin: requireNfcAndPin);
+            RequiresNfcAndPin: requireNfcAndPin,
+            CanServe: Perm(Permissions.OrderServe),
+            PaymentTiming: rules?.PaymentTiming);
     }
 }

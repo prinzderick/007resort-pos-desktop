@@ -226,7 +226,13 @@ public sealed class SensitiveActionViewModel : ModalViewModel
                 return false;
             }
 
-            wire = MoneyFormat.ToWire(percent);
+            // The node validates a percentage as ^\d{1,3}(\.\d{1,2})?$ (at most 2 decimals), unlike money (4 decimals).
+            if (decimal.Round(percent, 2) != percent)
+            {
+                return false;
+            }
+
+            wire = percent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
             return true;
         }
 

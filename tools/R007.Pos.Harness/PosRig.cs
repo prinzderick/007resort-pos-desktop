@@ -95,7 +95,7 @@ public sealed class PosRig : IDisposable
     {
         var rig = new PosRig(node, options ?? new PosOptions { Approvals = new ApprovalOptions { PollIntervalSeconds = 1, WaitTimeoutMinutes = 2 } }, retryBase ?? TimeSpan.FromMilliseconds(100));
         var code = await node.NewRegistrationCodeAsync(facilityCode).ConfigureAwait(false);
-        await rig.Ctx.RegisterAsync(node.Root, code, $"Harness {facilityCode} {DateTime.UtcNow:HHmmss}").ConfigureAwait(false);
+        await Throttle.RetryVoidAsync(() => rig.Ctx.RegisterAsync(node.Root, code, $"Harness {facilityCode} {DateTime.UtcNow:HHmmss}")).ConfigureAwait(false);
         return rig;
     }
 
@@ -109,6 +109,18 @@ public sealed class PosRig : IDisposable
         }
 
         await login.SignInCommand.ExecuteAsync().ConfigureAwait(false);
+        for (var attempt = 0; !Auth.IsSignedIn && login.Error?.Contains("Too many", StringComparison.OrdinalIgnoreCase) == true && attempt < 6; attempt++)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(13)).ConfigureAwait(false);
+            foreach (var digit in pin)
+            {
+                login.KeyCommand.Execute(digit.ToString());
+            }
+
+            login.StaffNumber = staffNumber;
+            await login.SignInCommand.ExecuteAsync().ConfigureAwait(false);
+        }
+
         if (!Auth.IsSignedIn)
         {
             throw new ScenarioFailure($"Sign-in as {staffNumber} failed: {login.Error}");

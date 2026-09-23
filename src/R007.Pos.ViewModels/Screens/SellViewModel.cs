@@ -78,6 +78,7 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
         DecrementCommand = new AsyncRelayCommand(p => ChangeQuantityAsync(p as CartLineViewModel, -1), null, SetError);
         RemoveLineCommand = new AsyncRelayCommand(p => ChangeQuantityAsync(p as CartLineViewModel, int.MinValue), null, SetError);
         SendCommand = new AsyncRelayCommand(SendAsync, () => CanSend, SetError);
+        ServeCommand = new AsyncRelayCommand(ServeAsync, () => CanServe, SetError);
         PayCommand = new AsyncRelayCommand(PayOrderAsync, () => CanPayOrder, SetError);
         SettleTabCommand = new AsyncRelayCommand(SettleTabAsync, () => CanSettleTab, SetError);
         VoidCommand = new AsyncRelayCommand(VoidAsync, () => CanVoid, SetError);
@@ -216,13 +217,23 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
         null => string.Empty,
         { IsPendingConfirmation: true } => "PENDING CONFIRMATION: saved on this terminal, not yet on the server.",
         { PendingApprovalId: not null } => "Waiting for supervisor approval.",
+        _ when AwaitingService && CanServe => "Payment is taken after service: mark the order served once the items are ready.",
         _ => string.Empty,
     };
 
     // Actions gating (UI only; the API enforces) -----------------------------------------------------------------
     public bool CanSend => _order is { IsDraft: true, HasLines: true } && _ctx.Features.CanSend && _order.PendingApprovalId is null;
 
-    public bool CanPayOrder => _order is { HasLines: true, IsClosed: false } && _ctx.Features.CanPay && _order.PendingApprovalId is null;
+    public bool CanPayOrder => _order is { HasLines: true, IsClosed: false } && _ctx.Features.CanPay && _order.PendingApprovalId is null && !AwaitingService && !FullyPaid;
+
+    /// <summary>Pay-after-service facility (Restaurant): the node only takes payment for a SERVED order, so paying is offered once it is served.</summary>
+    public bool AwaitingService => _ctx.Features.PayAfterService && _order is { IsPendingConfirmation: false } o && o.Status != OrderStatuses.Served;
+
+    /// <summary>Server-reported: nothing left to pay (a pay-first order stays DRAFT/SENT after it is paid, it is not SETTLED).</summary>
+    public bool FullyPaid => _order is { BalanceDue: <= 0m, AmountPaid: > 0m };
+
+    /// <summary>Mark an order served (order.serve) so a pay-after-service facility can take payment. The kitchen/bar must have the items ready.</summary>
+    public bool CanServe => _order is { IsPendingConfirmation: false, Status: OrderStatuses.Sent or OrderStatuses.InPreparation or OrderStatuses.Ready } && _ctx.Features.CanServe && _order.PendingApprovalId is null;
 
     public bool CanSettleTab => _tab is { IsOpen: true } && _ctx.Features.CanPay;
 
@@ -247,6 +258,8 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
     public AsyncRelayCommand SendCommand { get; }
 
     public AsyncRelayCommand PayCommand { get; }
+
+    public AsyncRelayCommand ServeCommand { get; }
 
     public AsyncRelayCommand SettleTabCommand { get; }
 
@@ -362,6 +375,32 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
         }
     }
 
+    private async Task ServeAsync()
+    {
+        Error = null;
+        await RefreshOrderAsync().ConfigureAwait(true); // the kitchen moves the order's version: always serve against the latest
+        if (_order is not { } order || !CanServe)
+        {
+            return;
+        }
+
+        try
+        {
+            _order = WorkingOrder.FromServer(await _ctx.Api.ServeOrderAsync(order.Id, order.RowVersion, IdempotencyKeys.New()).ConfigureAwait(true));
+            Info = "Served.";
+        }
+        catch (ApiException ex) when (ex.Code == "order_state_invalid")
+        {
+            Error = ex.UserMessage; // e.g. "Some items are still being prepared."
+        }
+
+        RebuildCart();
+        if (_tab is not null)
+        {
+            await RefreshTabAsync().ConfigureAwait(true);
+        }
+    }
+
     /// <summary>Barcode / SKU / search text. A unique hit is added straight to the cart.</summary>
     public async Task HandleScanAsync(string data)
     {
@@ -452,9 +491,9 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
                     await RefreshTabAsync().ConfigureAwait(true);
                 }
 
-                if (_order is { IsClosed: true })
+                if (_order is { IsClosed: true } or { BalanceDue: <= 0m, AmountPaid: > 0m })
                 {
-                    NewOrder();
+                    NewOrder(); // paid in full (a pay-first order stays DRAFT/SENT on the node, so the balance decides)
                 }
             }).ConfigureAwait(true);
             Info = modal.ChangeText ?? "Paid.";
@@ -596,11 +635,14 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
     private void RaiseActions()
     {
         OnPropertyChanged(nameof(CanSend));
+        OnPropertyChanged(nameof(CanServe));
+        OnPropertyChanged(nameof(AwaitingService));
         OnPropertyChanged(nameof(CanPayOrder));
         OnPropertyChanged(nameof(CanSettleTab));
         OnPropertyChanged(nameof(CanVoid));
         OnPropertyChanged(nameof(CanEditLines));
         SendCommand.RaiseCanExecuteChanged();
+        ServeCommand.RaiseCanExecuteChanged();
         PayCommand.RaiseCanExecuteChanged();
         SettleTabCommand.RaiseCanExecuteChanged();
         VoidCommand.RaiseCanExecuteChanged();

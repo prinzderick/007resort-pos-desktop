@@ -111,7 +111,50 @@ public sealed class RawApi(Uri root)
     /// <summary>Signs a seeded staff member in (PIN) and returns the bearer token.</summary>
     public async Task<string> LoginPinAsync(string staffNumber, string pin = "1234", string? deviceToken = null)
     {
-        var response = await PostAsync("auth/staff/login", new JsonObject { ["credentialType"] = "PIN", ["identifier"] = staffNumber, ["secret"] = pin }, deviceToken: deviceToken).ConfigureAwait(false);
+        var response = await Throttle.RetryAsync(() => PostAsync("auth/staff/login", new JsonObject { ["credentialType"] = "PIN", ["identifier"] = staffNumber, ["secret"] = pin }, deviceToken: deviceToken)).ConfigureAwait(false);
         return response.Ok($"login {staffNumber}").Json["accessToken"]!.GetValue<string>();
+    }
+}
+
+/// <summary>
+/// The node rate-limits device registration (10/min/IP), staff login (10/min per identifier, 60/min/IP) and refresh. A harness that
+/// enrols many terminals hits that, so it waits out <c>429</c> exactly like a patient client would.
+/// </summary>
+public static class Throttle
+{
+    public static async Task<RawResponse> RetryAsync(Func<Task<RawResponse>> send)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            var response = await send().ConfigureAwait(false);
+            if (response.Code != 429 || attempt >= 6)
+            {
+                return response;
+            }
+
+            var wait = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(12);
+            await Task.Delay(wait < TimeSpan.FromSeconds(65) ? wait + TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(30)).ConfigureAwait(false);
+        }
+    }
+
+    public static Task RetryVoidAsync(Func<Task> call) => RetryAsync(async () =>
+    {
+        await call().ConfigureAwait(false);
+        return true;
+    });
+
+    public static async Task<T> RetryAsync<T>(Func<Task<T>> call)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                return await call().ConfigureAwait(false);
+            }
+            catch (R007.Pos.Core.Api.ApiException ex) when (ex.Status == System.Net.HttpStatusCode.TooManyRequests && attempt < 6)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(13)).ConfigureAwait(false);
+            }
+        }
     }
 }

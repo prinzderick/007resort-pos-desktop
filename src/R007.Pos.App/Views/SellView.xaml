@@ -170,6 +170,7 @@
 
                 <WrapPanel Grid.Row="4" Margin="0,8,0,0">
                     <Button Content="Send" Command="{Binding SendCommand}" />
+                    <Button Content="Mark served" Command="{Binding ServeCommand}" />
                     <Button Style="{StaticResource PrimaryButton}" Content="Pay" Command="{Binding PayCommand}" MinWidth="110" />
                     <Button Style="{StaticResource PrimaryButton}" Content="Settle tab" Command="{Binding SettleTabCommand}"
                             Visibility="{Binding IsTabTarget, Converter={StaticResource BoolToVis}}" />
