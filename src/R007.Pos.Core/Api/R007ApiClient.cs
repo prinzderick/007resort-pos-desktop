@@ -49,6 +49,9 @@ public sealed class R007ApiClient(HttpClient httpClient) : IR007ApiClient
     public Task<Facility> GetFacilityAsync(Guid facilityId, CancellationToken cancellationToken = default) =>
         GetAsync($"api/v1/organization/facilities/{Id(facilityId)}", Ctx.Facility, cancellationToken);
 
+    public async Task<string> AuthorizeChannelAsync(string socketId, string channelName, CancellationToken cancellationToken = default) =>
+        (await SendAsync(HttpMethod.Post, "api/v1/broadcasting/auth", new BroadcastAuthRequest(socketId, channelName), Ctx.BroadcastAuthRequest, Ctx.BroadcastAuthResponse, null, cancellationToken: cancellationToken).ConfigureAwait(false)).Auth;
+
     // Auth --------------------------------------------------------------------------------------------------
     public Task<AuthResult> LoginAsync(StaffLoginRequest request, CancellationToken cancellationToken = default) =>
         SendAsync(HttpMethod.Post, "api/v1/auth/staff/login", request, Ctx.StaffLoginRequest, Ctx.AuthResult, null, cancellationToken: cancellationToken);

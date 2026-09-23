@@ -2,6 +2,7 @@ using R007.Pos.Core.Api;
 using R007.Pos.Core.Configuration;
 using R007.Pos.Core.Http;
 using R007.Pos.Core.Offline;
+using R007.Pos.Core.Realtime;
 using R007.Pos.Core.Terminal;
 using R007.Pos.Devices.CashDrawer;
 using R007.Pos.Devices.Printing;
@@ -42,7 +43,8 @@ public sealed class PosContext : ObservableObject
         TimeProvider time,
         string hardwareId,
         string appVersion,
-        Func<TimeSpan, CancellationToken, Task>? delay = null)
+        Func<TimeSpan, CancellationToken, Task>? delay = null,
+        Func<IRealtimeSocket>? realtimeSocketFactory = null)
     {
         Api = api;
         Auth = auth;
@@ -61,6 +63,7 @@ public sealed class PosContext : ObservableObject
         Printing = new PrintService(api, printer, options.Printer.CharactersPerLine);
         Approvals = new ApprovalCoordinator(api, options.Approvals, time, delay);
         Orders = new OrderWorkflow(api, emergency, time);
+        Realtime = new RealtimeClient(api, realtimeSocketFactory ?? (() => new ClientWebSocketAdapter()), delay);
         auth.Changed += (_, _) => RecomputeFeatures();
     }
 
@@ -97,6 +100,12 @@ public sealed class PosContext : ObservableObject
     public ApprovalCoordinator Approvals { get; }
 
     public OrderWorkflow Orders { get; }
+
+    /// <summary>Push hints (approval decided/requested, device commands). Polling remains the source of truth.</summary>
+    public RealtimeClient Realtime { get; }
+
+    /// <summary>Last successful <c>GET /system/info</c> (realtime endpoint, versions).</summary>
+    public SystemInfo? ServerInfo { get; private set; }
 
     public DeviceIdentity? Identity
     {
@@ -187,6 +196,7 @@ public sealed class PosContext : ObservableObject
         try
         {
             var info = await Api.GetSystemInfoAsync(ct).ConfigureAwait(false);
+            ServerInfo = info;
             if (info.MinClientVersion is { } min
                 && (min.TryGetValue("POS_TERMINAL", out var required) || min.TryGetValue("pos", out required))
                 && Version.TryParse(required, out var need)

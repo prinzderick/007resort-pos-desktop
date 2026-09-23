@@ -70,6 +70,8 @@ namespace R007.Pos.Core.Api;
 [JsonSerializable(typeof(CancelBookingRequest))]
 [JsonSerializable(typeof(Entitlement))]
 [JsonSerializable(typeof(IssueEntitlementRequest))]
+[JsonSerializable(typeof(BroadcastAuthRequest))]
+[JsonSerializable(typeof(BroadcastAuthResponse))]
 [JsonSerializable(typeof(ProblemDetailsDto))]
 public sealed partial class PosJsonContext : JsonSerializerContext
 {

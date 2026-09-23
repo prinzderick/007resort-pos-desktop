@@ -2,81 +2,127 @@
 
 Windows point-of-sale client for the **007 Resort & Spa Integrated Facility Operations Platform**.
 
-> **Status: Phase 0 — scaffolding only.** Solution structure, API client, device abstractions with
-> simulators, tests and CI. No sales features yet; the architecture is under review.
+> **Status: MVP.** A real MVVM WPF application with a typed API client for the v1 contract, a built-in
+> **mock server** (demo without a backend), touch selling, tabs, supervisor approvals, split payments,
+> ESC/POS receipts, Reception ticket/booking flows, cash sessions and an encrypted emergency queue.
+> What can only be proven on Windows hardware is listed in
+> [docs/windows-hardware-verification.md](docs/windows-hardware-verification.md).
 
 ## What this is
 
 **One configurable, lightweight POS application** used at every fixed station. It is a **thin
-client of the 007 Resort & Spa API** (`007resort-api`):
+client of the 007 Resort & Spa API** (`007resort-api`, contract: `api/openapi/v1.yaml` in
+[007resort-docs](https://github.com/prinzderick/007resort-docs)):
 
 ```
-POS (this app)  ──HTTP──▶  on-site 007 Resort & Spa API  ──▶  on-site MySQL 8.4
-                                   │
-                                   └── sync ──▶ 007 Resort & Spa Cloud
+POS (this app)  --HTTP-->  on-site 007 Resort & Spa API  -->  on-site MySQL 8.4
+                                   |
+                                   +-- sync --> 007 Resort & Spa Cloud
 ```
 
-- **No local database.** The POS never talks to MySQL and holds no master data.
-- **No business rules in the client.** Prices, taxes, discounts, permissions, stock and
-  entitlements are decided by the API; the POS renders and captures.
-- **Behaviour is configuration, not code.** What a terminal shows and allows is driven by its
-  **registered device**, its **facility** and **operating point**, and the signed-in staff member's
-  **role/permissions** — all returned by the API (`TerminalContext`).
-- **Staff sign-in at fixed stations:** NFC badge + PIN, verified by the API.
-- **Emergency offline queue** (optional, per API policy): encrypted, append-only, idempotency-keyed
-  operations that are replayed **through the API only** once it is reachable (`IOfflineQueue`).
+- **No local database, no MySQL.** The only local persistence is the encrypted emergency queue and the
+  DPAPI-protected device identity.
+- **No business rules in the client.** Every price, tax, discount, total, balance and change figure on screen
+  is the API's. (The one exception is the clearly labelled *estimate* shown during an outage.)
+- **Behaviour is configuration, not code.** Which tabs exist (Sell, Tables & tabs, Reception, Approvals, Cash
+  session, History) is computed from the registered device's facility **capabilities** and the signed-in staff
+  member's **permissions** (`TerminalFeatures`). There is no per-facility build and no station-name `if`.
+- **Money** is `decimal` everywhere, parsed with `InvariantCulture`, sent as decimal strings, never `double`.
+- **Idempotent by construction:** every mutation carries an `Idempotency-Key` that the caller generates once per
+  user intent and reuses on every retry (including double taps and lost responses).
 
-## Fixed terminals (10)
+## Screens and flows
 
-| Location | Terminals |
+| Area | What it does |
 |---|---|
-| Main Reception | 2 |
-| Restaurant | 1 |
-| Indoor Club | 1 |
-| Beauty Spa | 1 |
-| Bush Bar / Event Centre | 1 |
-| Cafe / Cyber Cafe | 1 |
-| Salon | 1 |
-| Supermarket | 2 |
-| **Total** | **10** |
+| Setup | Server URL + one-time registration code -> `POST /devices/register`; token stored with DPAPI |
+| Login | Touch PIN pad (staff number + PIN), username + password, **NFC card as keyboard-wedge input**. Stations that require NFC + PIN never sign in on a card alone |
+| Sell | Category tabs, touch grid, search, **barcode scan box**, cart with quantity and line notes (quick notes), server-priced totals, send to kitchen/bar |
+| Tables & tabs | Table map, open a tab, add rounds (each an order), send, **settle on exit** with split tenders |
+| Approvals | Void, discount, comp, price override, refund, reversal: request -> the API holds it (`202`) -> supervisor decides on their device (this screen polls; a push can wake it) **or** a supervisor authorises inline with `step-up` |
+| Payments | Cash (server-computed change), card / POS terminal / transfer as recorded tenders with a reference, **split** (several tenders, one atomic request), partial settle, **Paystack pay-link + verify** |
+| Receipts | API returns a structured receipt; the POS lays it out for 80 mm (48 cols) and prints via `IReceiptPrinter` (ESC/POS bytes, QR, cut, drawer kick). File/console printers for demos and tests; raw Windows spooler printer for real hardware. Reprint by permission (marked DUPLICATE, no drawer kick) |
+| Reception | Sports/pool booking (hold -> rentals -> pay -> confirm) and ticket/rental sales; prints a **QR entitlement receipt** |
+| Cash session | Open with float; close with a **blind count** (system figure shown only after closing); shift report (print) |
+| History | Payment history by permission; reprint, refund, reversal |
+| Queue / status | Connectivity indicator, items waiting to be confirmed, items the server refused (acknowledge) |
 
-All ten run the same build; they differ only by registration and API-provided configuration.
+## Emergency offline queue
+
+If the API is unreachable and the facility's `operatingRules.allowOfflineOrders` / `allowOfflinePayments`
+permit it, staff can keep trading with a **small, bounded, encrypted queue** (not a database):
+
+- Queueable: create order, add line, send order, open tab (client UUIDv7 ids), and **CASH-only** payments.
+  **Never** queued: card, POS terminal, transfer, Paystack, refunds, voids, adjustments, approvals, cash-session
+  operations, booking holds, ticket redemption. Nothing that needs provider authorisation is ever shown as paid.
+- AES-256-GCM per record, key wrapped by DPAPI; append-only file; the record sequence number is bound into the
+  authentication data, so deleted/reordered/spliced records are detected; a torn final write is discarded.
+- Bounded by count and age (default 200 entries / 30 minutes); when bounded out, new offline actions are refused.
+- Replay is **through the API only**, strictly in order, one request in flight, reusing the original
+  `Idempotency-Key` (a crash between "server applied" and "marked replayed" is harmless), tracking `rowVersion` for
+  `If-Match`. A transient failure stops the drain; a definite refusal is recorded and shown to staff, never dropped.
+- The UI labels queued work **PENDING CONFIRMATION** and shows no receipt for unconfirmed money.
+
+## Demo without a backend (mock mode)
+
+```bash
+export R007_MOCK=true          # PowerShell:  $env:R007_MOCK = "true"
+dotnet run --project src/R007.Pos.App        # Windows only
+```
+
+The whole real client stack (typed client, retry, auth refresh, offline replay) runs against
+`MockApiHandler`, an in-memory implementation of the contract (idempotency replay, `If-Match`, `202` approvals,
+step-up, client ids, cash sessions, bookings, entitlements, Paystack). Registration codes: `RESTAURANT`, `CLUB`,
+`RECEPTION`. Staff: `S-1001` cashier / `1234`, `S-1002` waiter / `1111`, `S-1003` supervisor / `9999` (or
+`cashier|waiter|supervisor` with the same PIN as password). Card UIDs: `04A1B2C3D4` (cashier), `04FFEE0011`
+(supervisor). Receipts are written to `%LOCALAPPDATA%\R007Pos\receipts\*.txt` (+ `.bin` ESC/POS bytes).
+Set `R007_Pos__RequireNfcAndPin=true` to try the NFC + PIN station.
 
 ## Repository layout
 
 ```
 R007.Pos.sln
 src/
-  R007.Pos.App/      WPF shell (net10.0-windows) — composition root, screens
-  R007.Pos.Core/     API client, offline-queue contract, terminal context, options (net10.0)
-  R007.Pos.Devices/  Hardware abstractions + simulators: printer (80mm ESC/POS), NFC, scanner,
-                       cash drawer, customer display (net10.0, no vendor SDKs)
-tests/
-  R007.Pos.Tests/    xUnit tests (API client via fake HttpMessageHandler, simulated devices)
-docs/configuration.md  Configuration template and keys
+  R007.Pos.Core/        Typed API client (System.Text.Json source-generated), HTTP pipeline (retry, auth
+                        refresh, connectivity), money, encrypted emergency queue + replay, mock server,
+                        terminal features. net10.0, no WPF.
+  R007.Pos.Devices/     Hardware abstractions and implementations: ESC/POS renderer, raw Windows printer port,
+                        file/console printers, printer cash drawer, keyboard-wedge decoder, simulators.
+  R007.Pos.ViewModels/  MVVM: shell, screens, dialogs, PosContext. net10.0, no WPF -> unit-tested on any OS.
+  R007.Pos.App/         WPF views (XAML), composition root, wedge input hook. net10.0-windows.
+tests/R007.Pos.Tests/   xUnit: view models, API client vs mock/fake handlers, queue crypto/replay, money,
+                        receipt snapshot, approvals, contract conformance, XAML binding guard.
+docs/                   configuration.md, api-contract-notes.md, windows-hardware-verification.md
 ```
 
 ## Prerequisites
 
-- .NET 10 SDK (pinned in `global.json`)
-- Windows 10/11 to run the WPF app. Core/Devices/Tests build and run on macOS/Linux; the WPF
-  project also compiles there thanks to `EnableWindowsTargeting`, but can only run on Windows.
-- A running `007resort-api` (default `http://localhost:5080`) — see that repo's README.
+- .NET 10 SDK (pinned in `global.json`).
+- Windows 10/11 to **run** the WPF app. Everything builds and all tests run on macOS/Linux (`EnableWindowsTargeting`).
+- A running `007resort-api` (or `R007_MOCK=true`).
 
 ## Build, run, test
 
 ```bash
-dotnet build R007.Pos.sln
-dotnet test R007.Pos.sln
-dotnet run --project src/R007.Pos.App        # Windows only
+export DOTNET_ROOT=$HOME/.dotnet PATH=$HOME/.dotnet:$PATH   # macOS dev machine
+dotnet build R007.Pos.sln -c Release
+dotnet test  R007.Pos.sln -c Release
+dotnet run --project src/R007.Pos.App                          # Windows only
 ```
 
-CI (`.github/workflows/ci.yml`) builds and tests the whole solution on `windows-latest` and runs a
-gitleaks secret scan on every push/PR to `main`.
+CI (`.github/workflows/ci.yml`) builds and tests the whole solution on `windows-latest` and runs a gitleaks
+secret scan on every push/PR to `main`.
 
 ## Configuration
 
 See [docs/configuration.md](docs/configuration.md). No secrets are stored in configuration files.
+
+## Contract
+
+Types mirror `api/openapi/v1.yaml` (statuses stay strings so a newer API cannot break parsing). Spec drift is
+guarded by `ContractConformanceTests` (example payloads and schema property lists copied into
+`tests/R007.Pos.Tests/ContractFixtures`). Assumptions and requests to the contract owners:
+[docs/api-contract-notes.md](docs/api-contract-notes.md).
 
 ## Conventions
 

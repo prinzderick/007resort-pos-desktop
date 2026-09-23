@@ -36,7 +36,7 @@ public sealed class TestPos : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "r007-tests-" + Guid.NewGuid().ToString("N"));
 
-    public TestPos(PosOptions? options = null, RetryOptions? retry = null)
+    public TestPos(PosOptions? options = null, RetryOptions? retry = null, Func<R007.Pos.Core.Realtime.IRealtimeSocket>? realtime = null)
     {
         Directory.CreateDirectory(_dir);
         Env = new TestEnv(retry: retry);
@@ -53,7 +53,7 @@ public sealed class TestPos : IDisposable
             // Stands in for the poll interval: lets a concurrent "supervisor" act, and moves the clock so timeouts elapse.
             Env.Time.Advance(TimeSpan.FromSeconds(2));
             await Task.Delay(4);
-        });
+        }, realtime);
     }
 
     public TestEnv Env { get; }

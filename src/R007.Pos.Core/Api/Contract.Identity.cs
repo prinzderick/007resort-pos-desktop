@@ -4,6 +4,9 @@ namespace R007.Pos.Core.Api;
 // UUIDv7 ids. Statuses and kinds stay strings on purpose: an unknown value from a newer API must not break parsing
 // (contract README: "treat unknown enum values as other").
 
+/// <summary>Where the node's Reverb (Pusher protocol) server is (from <c>GET /system/info</c>).</summary>
+public sealed record RealtimeInfo(string Scheme, string Host, int Port, string AppKey);
+
 public sealed record SystemInfo(
     string Service,
     string ApiVersion,
@@ -13,7 +16,15 @@ public sealed record SystemInfo(
     string? Timezone,
     string Currency,
     IReadOnlyDictionary<string, string>? MinClientVersion,
-    bool? VatEnabled);
+    bool? VatEnabled,
+    RealtimeInfo? Realtime = null);
+
+/// <summary>Pusher-style private channel authorisation (<c>POST /broadcasting/auth</c>; property names are snake_case on the wire).</summary>
+public sealed record BroadcastAuthRequest(
+    [property: System.Text.Json.Serialization.JsonPropertyName("socket_id")] string SocketId,
+    [property: System.Text.Json.Serialization.JsonPropertyName("channel_name")] string ChannelName);
+
+public sealed record BroadcastAuthResponse(string Auth);
 
 public sealed record Staff(
     Guid Id,

@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using R007.Pos.Core.Api;
+using System.Text.Json;
 using R007.Pos.Core.Http;
+using R007.Pos.Core.Realtime;
 using R007.Pos.Devices.Nfc;
 using R007.Pos.Devices.Scanning;
 using R007.Pos.ViewModels.Infrastructure;
@@ -30,6 +32,7 @@ public sealed class ShellViewModel : ObservableObject, INavigator
     private int _pendingCount;
     private DateTimeOffset _lastActivity;
     private string? _banner;
+    private CancellationTokenSource? _realtime;
 
     public ShellViewModel(PosContext ctx, INfcReader? nfc = null, IBarcodeScanner? scanner = null, Func<TimeSpan, CancellationToken, Task>? delay = null)
     {
@@ -49,6 +52,8 @@ public sealed class ShellViewModel : ObservableObject, INavigator
             OnPropertyChanged(nameof(StaffName));
             OnPropertyChanged(nameof(IsSignedIn));
         });
+        ctx.Realtime.EventReceived += ev => Post(() => OnRealtime(ev));
+        ctx.Realtime.Subscribed += () => Post(() => _ = OnRealtimeSubscribedAsync());
         if (nfc is not null)
         {
             nfc.TagRead += (_, e) => Post(() => _ = HandleScanAsync(e.Uid, isCard: true));
@@ -179,6 +184,83 @@ public sealed class ShellViewModel : ObservableObject, INavigator
         OnPropertyChanged(nameof(Main));
         await main.InitializeAsync().ConfigureAwait(true);
         _ = DrainQueueAsync();
+        _ = StartRealtimeAsync();
+    }
+
+    // Realtime hints (never a source of truth) -------------------------------------------------------------------
+    private async Task StartRealtimeAsync()
+    {
+        StopRealtime();
+        try
+        {
+            if (_ctx.ServerInfo is null)
+            {
+                await _ctx.CheckServerAsync().ConfigureAwait(true);
+            }
+
+            if (_ctx.ServerInfo?.Realtime is { } info && _ctx.Identity is { } identity)
+            {
+                _realtime = new CancellationTokenSource();
+                _ = _ctx.Realtime.RunAsync(info, identity.DeviceId, _realtime.Token);
+            }
+        }
+        catch (Exception ex) when (ex is ApiException or ApiUnavailableException)
+        {
+            // Polling continues without push.
+        }
+    }
+
+    private void StopRealtime()
+    {
+        _realtime?.Cancel();
+        _realtime = null;
+    }
+
+    private void OnRealtime(RealtimeEvent ev)
+    {
+        switch (ev.Name)
+        {
+            case "approval.decided" when TryGetGuid(ev.Data, "approval", "id") is { } approvalId:
+                _ctx.Approvals.NotifyDecided(approvalId); // wakes the waiting dialog, which re-reads GET /approvals/{id}
+                break;
+            case "approval.requested":
+                if (Main is { } main)
+                {
+                    _ = main.RefreshBadgesAsync();
+                }
+
+                break;
+            case "device.command" when ev.Data.ValueKind == JsonValueKind.Object && ev.Data.TryGetProperty("command", out var cmd)
+                && cmd.GetString() is "FORCE_LOGOUT" or "LOCK" or "REVOKE":
+                _ = SignOutAsync();
+                Banner = $"This terminal was {cmd.GetString()!.ToLowerInvariant().Replace('_', ' ')} by an administrator.";
+                break;
+            default:
+                break;
+        }
+    }
+
+    /// <summary>After every (re)subscription events may have been missed: reload what is on screen over REST.</summary>
+    private async Task OnRealtimeSubscribedAsync()
+    {
+        if (Main is { } main)
+        {
+            await main.RefreshBadgesAsync().ConfigureAwait(true);
+        }
+    }
+
+    private static Guid? TryGetGuid(JsonElement data, params string[] path)
+    {
+        var current = data;
+        foreach (var segment in path)
+        {
+            if (current.ValueKind != JsonValueKind.Object || !current.TryGetProperty(segment, out current))
+            {
+                return null;
+            }
+        }
+
+        return Guid.TryParse(current.GetString(), out var id) ? id : null;
     }
 
     private async Task OnSessionExpiredAsync()
@@ -188,6 +270,7 @@ public sealed class ShellViewModel : ObservableObject, INavigator
             return;
         }
 
+        StopRealtime();
         Modals.Clear();
         NotifyModals();
         ShowLogin();
@@ -197,6 +280,7 @@ public sealed class ShellViewModel : ObservableObject, INavigator
 
     public async Task SignOutAsync()
     {
+        StopRealtime();
         Modals.Clear();
         NotifyModals();
         await _ctx.SignOutAsync().ConfigureAwait(true);

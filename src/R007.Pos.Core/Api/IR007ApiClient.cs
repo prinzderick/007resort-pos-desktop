@@ -22,6 +22,9 @@ public interface IR007ApiClient
 
     Task<Facility> GetFacilityAsync(Guid facilityId, CancellationToken cancellationToken = default);
 
+    /// <summary>Authorises a private realtime channel for this staff session + device (returns the Pusher <c>auth</c> string).</summary>
+    Task<string> AuthorizeChannelAsync(string socketId, string channelName, CancellationToken cancellationToken = default);
+
     // Auth --------------------------------------------------------------------------------------------------
     Task<AuthResult> LoginAsync(StaffLoginRequest request, CancellationToken cancellationToken = default);
 

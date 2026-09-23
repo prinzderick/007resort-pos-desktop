@@ -119,6 +119,9 @@ public sealed partial class MockApiHandler : HttpMessageHandler
     /// <summary>Minimum client version the server advertises for <c>POS_TERMINAL</c> in <c>GET /system/info</c>.</summary>
     public string MinPosVersion { get; set; } = "0.1.0";
 
+    /// <summary>When set, <c>GET /system/info</c> advertises this Reverb endpoint (tests).</summary>
+    public RealtimeInfo? Realtime { get; set; }
+
     public IReadOnlyList<Guid> PendingApprovalIds
     {
         get
@@ -369,7 +372,7 @@ public sealed partial class MockApiHandler : HttpMessageHandler
         // Public endpoints
         if (method == "GET" && Match(seg, "system/info", out _))
         {
-            return Json(200, new SystemInfo("007resort-api", "1.0.0", "local", null, Now, "Africa/Lagos", "NGN", new Dictionary<string, string> { ["POS_TERMINAL"] = MinPosVersion }, _options.VatRatePercent > 0), Ctx.SystemInfo);
+            return Json(200, new SystemInfo("007resort-api", "1.0.0", "local", null, Now, "Africa/Lagos", "NGN", new Dictionary<string, string> { ["POS_TERMINAL"] = MinPosVersion }, _options.VatRatePercent > 0, Realtime), Ctx.SystemInfo);
         }
 
         if (method == "GET" && Match(seg, "health/live", out _))
@@ -406,6 +409,12 @@ public sealed partial class MockApiHandler : HttpMessageHandler
             var token = Header(request, "Authorization")["Bearer ".Length..];
             _access.Remove(token);
             return Raw(204, []);
+        }
+
+        if (method == "POST" && Match(seg, "broadcasting/auth", out _))
+        {
+            var req = Read(body, Ctx.BroadcastAuthRequest);
+            return Json(200, new BroadcastAuthResponse("mockkey:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(req.SocketId + req.ChannelName)))[..16]), Ctx.BroadcastAuthResponse);
         }
 
         if (method is "POST" or "PUT" or "PATCH" or "DELETE")
