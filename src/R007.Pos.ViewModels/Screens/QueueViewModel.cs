@@ -19,6 +19,7 @@ public sealed class RejectedRow(RejectedOperation op, QueueViewModel owner)
 public sealed class QueueViewModel : ScreenViewModel
 {
     private readonly PosContext _ctx;
+    private readonly SemaphoreSlim _loadGate = new(1, 1);
     private QueueStatus? _status;
 
     public QueueViewModel(PosContext ctx)
@@ -51,25 +52,37 @@ public sealed class QueueViewModel : ScreenViewModel
 
     internal void ReportError(Exception ex) => SetError(ex);
 
+    /// <summary>Reloads the lists. Loads are serialised (the shell refreshes this screen from background events too) and the collections are swapped in one synchronous step.</summary>
     public async Task LoadAsync()
     {
-        _status = await _ctx.Queue.GetStatusAsync().ConfigureAwait(true);
-        var pending = await _ctx.Queue.GetPendingAsync().ConfigureAwait(true);
-        Pending.Clear();
-        foreach (var op in pending)
+        await _loadGate.WaitAsync().ConfigureAwait(true);
+        try
         {
-            Pending.Add(op.Description ?? op.RelativePath);
-        }
+            var status = await _ctx.Queue.GetStatusAsync().ConfigureAwait(true);
+            var pending = await _ctx.Queue.GetPendingAsync().ConfigureAwait(true);
+            var rejected = await _ctx.Queue.GetRejectedAsync().ConfigureAwait(true);
 
-        Rejected.Clear();
-        foreach (var r in await _ctx.Queue.GetRejectedAsync().ConfigureAwait(true))
+            _status = status;
+            Pending.Clear();
+            foreach (var op in pending)
+            {
+                Pending.Add(op.Description ?? op.RelativePath);
+            }
+
+            Rejected.Clear();
+            foreach (var r in rejected)
+            {
+                Rejected.Add(new RejectedRow(r, this));
+            }
+
+            OnPropertyChanged(nameof(SummaryText));
+            OnPropertyChanged(nameof(BlockedText));
+            OnPropertyChanged(nameof(CorruptionDetected));
+        }
+        finally
         {
-            Rejected.Add(new RejectedRow(r, this));
+            _loadGate.Release();
         }
-
-        OnPropertyChanged(nameof(SummaryText));
-        OnPropertyChanged(nameof(BlockedText));
-        OnPropertyChanged(nameof(CorruptionDetected));
     }
 
     private async Task DrainAsync()
