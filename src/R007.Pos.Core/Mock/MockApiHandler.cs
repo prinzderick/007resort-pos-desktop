@@ -522,7 +522,7 @@ public sealed partial class MockApiHandler : HttpMessageHandler
         var staff = req.CredentialType switch
         {
             CredentialTypes.Pin => _staff.FirstOrDefault(s => string.Equals(s.Number, req.Identifier, StringComparison.OrdinalIgnoreCase) && s.Pin == req.Secret),
-            CredentialTypes.NfcCard => _staff.FirstOrDefault(s => string.Equals(s.Nfc, req.Secret, StringComparison.OrdinalIgnoreCase)),
+            CredentialTypes.NfcCard => _staff.FirstOrDefault(s => string.Equals(s.Nfc, req.Identifier, StringComparison.OrdinalIgnoreCase) && s.Pin == req.Secret), // like the node: card uid + PIN in one call
             CredentialTypes.Password => _staff.FirstOrDefault(s => string.Equals(s.Username, req.Identifier, StringComparison.OrdinalIgnoreCase) && s.Pin == req.Secret),
             _ => null,
         };
@@ -560,7 +560,7 @@ public sealed partial class MockApiHandler : HttpMessageHandler
         var approver = req.CredentialType switch
         {
             CredentialTypes.Pin => _staff.FirstOrDefault(s => string.Equals(s.Number, req.Identifier, StringComparison.OrdinalIgnoreCase) && s.Pin == req.Secret),
-            CredentialTypes.NfcCard => _staff.FirstOrDefault(s => string.Equals(s.Nfc, req.Secret, StringComparison.OrdinalIgnoreCase)),
+            CredentialTypes.NfcCard => _staff.FirstOrDefault(s => string.Equals(s.Nfc, req.Identifier, StringComparison.OrdinalIgnoreCase) && s.Pin == req.Secret), // like the node: card uid + PIN in one call
             _ => _staff.FirstOrDefault(s => string.Equals(s.Username, req.Identifier, StringComparison.OrdinalIgnoreCase) && s.Pin == req.Secret),
         };
 

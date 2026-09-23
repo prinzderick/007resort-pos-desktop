@@ -46,7 +46,7 @@ public static class CredentialTypes
     public const string NfcCard = "NFC_CARD";
 }
 
-/// <summary>For <c>NFC_CARD</c> the <c>Secret</c> is the card UID and <c>Identifier</c> is omitted.</summary>
+/// <summary>For <c>NFC_CARD</c> the <c>Identifier</c> is the card UID and the <c>Secret</c> is the staff PIN (the node never accepts a card alone).</summary>
 public sealed record StaffLoginRequest(string CredentialType, string? Identifier, string Secret);
 
 public sealed record AuthResult(string AccessToken, string RefreshToken, int ExpiresInSeconds, Staff Staff, SessionRef? Session);
@@ -65,9 +65,12 @@ public sealed record StepUpResult(string StepUpToken, int ExpiresInSeconds, Step
 public static class DeviceKinds
 {
     public const string PosTerminal = "POS_TERMINAL";
+
+    /// <summary>The explicit device <c>mode</c> the node keeps next to <c>kind</c> (POS terminals are mode POS).</summary>
+    public const string PosMode = "POS";
 }
 
-public sealed record DeviceRegisterRequest(string Name, string Kind, string HardwareId, string RegistrationCode, string? Platform = null, string? AppVersion = null);
+public sealed record DeviceRegisterRequest(string Name, string Kind, string HardwareId, string RegistrationCode, string? Platform = null, string? AppVersion = null, string? Mode = null);
 
 public sealed record Device(
     Guid Id,
@@ -90,7 +93,24 @@ public sealed record OperatingRules(
     string? AllowOfflinePayments,
     int? HoldTtlSeconds,
     bool? VatEnabled,
-    string? VatRatePercent);
+    string? VatRatePercent,
+    string? PaymentTiming = null)
+{
+    /// <summary>Reception-style counter: the order is paid BEFORE service (a DRAFT order may be settled).</summary>
+    public bool IsPayFirst => string.Equals(PaymentTiming, PaymentTimings.PayFirst, StringComparison.Ordinal);
+
+    /// <summary>Restaurant-style: only a SERVED order can be paid (<c>PAY_AFTER_SERVICE</c>, alias <c>PAY_BEFORE_LEAVING</c>; tabs settle on exit).</summary>
+    public bool IsPayAfterService => !IsPayFirst && PaymentTiming is not null;
+}
+
+/// <summary>Values of the <c>paymentTiming</c> operating rule as the node emits them (aliases included).</summary>
+public static class PaymentTimings
+{
+    public const string PayFirst = "PAY_FIRST";
+    public const string PayAfterService = "PAY_AFTER_SERVICE";
+    public const string PayBeforeLeaving = "PAY_BEFORE_LEAVING";
+    public const string OpenTab = "OPEN_TAB";
+}
 
 public sealed record FacilityCapabilities(Guid FacilityId, IReadOnlyList<string> Capabilities, OperatingRules? OperatingRules)
 {

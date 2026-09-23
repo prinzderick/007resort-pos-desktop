@@ -192,7 +192,14 @@ public sealed class RealtimeTests
         incoming.Enqueue(Established("7.7"));
         incoming.Enqueue("""{"event":"pusher_internal:subscription_succeeded","channel":"x","data":"{}"}""");
 
-        await shell.HandleWedgeInputAsync(MockData.CashierNfc); // card tap -> signed in -> the shell starts the realtime client
+        await shell.HandleWedgeInputAsync(MockData.CashierNfc); // card tap -> PIN -> signed in -> the shell starts the realtime client
+        var login = Assert.IsType<R007.Pos.ViewModels.Screens.LoginViewModel>(shell.Current);
+        foreach (var c in MockData.CashierPin)
+        {
+            login.KeyCommand.Execute(c.ToString());
+        }
+
+        await login.SignInCommand.ExecuteAsync();
         await WaitUntilAsync(() => pos.Server.Requests.Any(r => r.Path == "/api/v1/broadcasting/auth"));
 
         var order = await pos.Env.Api.CreateOrderAsync(new CreateOrderRequest(pos.Ctx.FacilityId, Lines: [new OrderLineInput(MockData.Beer, 1)]), IdempotencyKeys.New());

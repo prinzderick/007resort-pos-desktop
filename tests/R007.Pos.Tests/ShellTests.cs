@@ -212,6 +212,17 @@ public sealed class ShellTests
         Assert.Equal(1, pos.Server.PaymentCount);
     }
 
+    private static async Task EnterPinAsync(ShellViewModel shell, string pin)
+    {
+        var login = Assert.IsType<LoginViewModel>(shell.Current);
+        foreach (var c in pin)
+        {
+            login.KeyCommand.Execute(c.ToString());
+        }
+
+        await login.SignInCommand.ExecuteAsync();
+    }
+
     [Fact]
     public async Task WedgeInput_OnLogin_IsACard_OnSell_IsABarcode()
     {
@@ -223,6 +234,8 @@ public sealed class ShellTests
         Assert.Equal(Stage.Login, shell.Stage);
 
         await shell.HandleWedgeInputAsync(MockData.CashierNfc); // card tap arrives as keyboard text
+        Assert.Equal(Stage.Login, shell.Stage);                 // the node needs the PIN with the card
+        await EnterPinAsync(shell, MockData.CashierPin);
         Assert.Equal(Stage.Main, shell.Stage);
 
         await shell.HandleWedgeInputAsync("6001234500011");     // barcode scan
@@ -243,10 +256,12 @@ public sealed class ShellTests
         await shell.StartAsync();
 
         nfc.SimulateTap(MockData.CashierNfc);
-        for (var i = 0; i < 100 && shell.Stage != Stage.Main; i++)
+        for (var i = 0; i < 100 && (shell.Current as LoginViewModel)?.Step != LoginStep.EnterPin; i++)
         {
             await Task.Delay(5);
         }
+
+        await EnterPinAsync(shell, MockData.CashierPin);
 
         Assert.Equal(Stage.Main, shell.Stage);
         scanner.SimulateScan("6001234500028");

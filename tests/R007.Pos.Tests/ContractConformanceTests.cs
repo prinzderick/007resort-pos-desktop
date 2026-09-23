@@ -120,7 +120,8 @@ public sealed class ContractConformanceTests
         Assert.Equal(CredentialTypes.Pin, pin.CredentialType);
         var nfc = JsonSerializer.Deserialize(Fixture("StaffLoginRequest__nfc"), Ctx.StaffLoginRequest)!;
         Assert.Equal(CredentialTypes.NfcCard, nfc.CredentialType);
-        Assert.Null(nfc.Identifier); // the card UID is the secret; no identifier
+        Assert.Equal("04A2246B7C5E80", nfc.Identifier); // card uid = identifier, PIN = secret (verified against the real node)
+        Assert.Equal("1234", nfc.Secret);
 
         var create = JsonSerializer.Deserialize(Fixture("CreateOrderRequest__dinein"), Ctx.CreateOrderRequest)!;
         Assert.Equal("DINE_IN", create.Channel);

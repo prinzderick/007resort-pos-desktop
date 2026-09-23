@@ -81,10 +81,46 @@ public sealed partial class PosJsonContext : JsonSerializerContext
 public sealed record ProblemDetailsDto(
     string? Type,
     string? Title,
-    int? Status,
+    [property: JsonConverter(typeof(LenientInt32Converter))] int? Status,
     string? Detail,
     string? Code,
     IDictionary<string, string[]>? Errors,
     Guid? ApprovalId = null);
 
 public sealed record Health(string Status);
+
+/// <summary>
+/// Reads an integer that some server builds emit as a string (or a non-numeric domain value). RFC 7807 says <c>status</c>
+/// is the HTTP status integer, but the node once shipped <c>"status":"DRAFT"</c> on <c>order_state_invalid</c>; an
+/// unreadable value must never turn a business error into a parse failure.
+/// </summary>
+public sealed class LenientInt32Converter : JsonConverter<int?>
+{
+    public override int? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.Number when reader.TryGetInt32(out var n):
+                return n;
+            case JsonTokenType.String when int.TryParse(reader.GetString(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var parsed):
+                return parsed;
+            case JsonTokenType.StartObject or JsonTokenType.StartArray:
+                reader.Skip();
+                return null;
+            default:
+                return null;
+        }
+    }
+
+    public override void Write(Utf8JsonWriter writer, int? value, JsonSerializerOptions options)
+    {
+        if (value is { } v)
+        {
+            writer.WriteNumberValue(v);
+        }
+        else
+        {
+            writer.WriteNullValue();
+        }
+    }
+}

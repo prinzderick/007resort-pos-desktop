@@ -16,10 +16,10 @@ public enum LoginStep
 }
 
 /// <summary>
-/// Staff sign-in with a touch PIN pad. NFC cards arrive as keyboard-wedge text (routed here by the shell). Stations
-/// that require NFC + PIN (configuration <c>Pos:RequireNfcAndPin</c>) never sign in on a card alone: the card is proven
-/// to the API (<c>NFC_CARD</c>), then the same staff member's PIN is proven (<c>PIN</c>), and only the second session
-/// is kept (the provisional card-only session is revoked immediately).
+/// Staff sign-in with a touch PIN pad. NFC cards arrive as keyboard-wedge text (routed here by the shell). The node
+/// never signs in on a card alone: <c>NFC_CARD</c> is ONE call carrying the card uid as <c>identifier</c> and the staff
+/// PIN as <c>secret</c>. So a card tap always moves to the PIN step (on every station; stations that require NFC + PIN
+/// merely hide the staff-number path), and the sign-in is a single request, verified live against the real node.
 /// </summary>
 public sealed class LoginViewModel : ScreenViewModel, IScanTarget
 {
@@ -211,23 +211,9 @@ public sealed class LoginViewModel : ScreenViewModel, IScanTarget
 
         Error = null;
         _nfcUid = uid.Trim().ToUpperInvariant();
-        if (RequiresNfcAndPin)
-        {
-            Pin = string.Empty;
-            Step = LoginStep.EnterPin;
-            return;
-        }
-
-        // Card alone is allowed at this station.
-        var ok = await RunAsync(async () =>
-        {
-            var result = await _ctx.Api.LoginAsync(new StaffLoginRequest(CredentialTypes.NfcCard, null, _nfcUid)).ConfigureAwait(true);
-            Complete(result);
-        }).ConfigureAwait(true);
-        if (!ok)
-        {
-            _nfcUid = null;
-        }
+        // Any station: the API needs the PIN together with the card (NFC alone is refused server-side).
+        Pin = string.Empty;
+        Step = LoginStep.EnterPin;
     }
 
     private async Task SignInAsync()
@@ -266,40 +252,8 @@ public sealed class LoginViewModel : ScreenViewModel, IScanTarget
         }
     }
 
-    private async Task<AuthResult> SignInWithCardAndPinAsync(string uid, string pin)
-    {
-        var auth = _ctx.Auth;
-        var cardOnly = await _ctx.Api.LoginAsync(new StaffLoginRequest(CredentialTypes.NfcCard, null, uid)).ConfigureAwait(true);
-        auth.SignIn(cardOnly, _ctx.Time.GetUtcNow()); // provisional: only so it can be revoked below
-
-        try
-        {
-            var number = cardOnly.Staff.StaffNumber
-                ?? throw new InvalidOperationException("This card's owner has no staff number, so the PIN cannot be checked.");
-            var full = await _ctx.Api.LoginAsync(new StaffLoginRequest(CredentialTypes.Pin, number, pin)).ConfigureAwait(true);
-            if (full.Staff.Id != cardOnly.Staff.Id)
-            {
-                throw new InvalidOperationException("Card and PIN belong to different people.");
-            }
-
-            await _ctx.Api.LogoutAsync().ConfigureAwait(true); // revoke the card-only session
-            return full;
-        }
-        catch
-        {
-            try
-            {
-                await _ctx.Api.LogoutAsync().ConfigureAwait(true);
-            }
-            catch (Exception ex) when (ex is ApiException or ApiUnavailableException)
-            {
-                // best effort
-            }
-
-            auth.SignOut();
-            throw;
-        }
-    }
+    private Task<AuthResult> SignInWithCardAndPinAsync(string uid, string pin) =>
+        _ctx.Api.LoginAsync(new StaffLoginRequest(CredentialTypes.NfcCard, uid, pin));
 
     private void Complete(AuthResult result)
     {

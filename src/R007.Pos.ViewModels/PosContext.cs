@@ -223,7 +223,7 @@ public sealed class PosContext : ObservableObject
         try
         {
             var result = await Api.RegisterDeviceAsync(
-                new DeviceRegisterRequest(deviceName, DeviceKinds.PosTerminal, HardwareId, registrationCode.Trim(), "windows", AppVersion),
+                new DeviceRegisterRequest(deviceName, DeviceKinds.PosTerminal, HardwareId, registrationCode.Trim(), OperatingSystem.IsWindows() ? "windows" : OperatingSystem.IsMacOS() ? "macos" : "linux", AppVersion, DeviceKinds.PosMode),
                 IdempotencyKeys.New(),
                 ct).ConfigureAwait(true);
 

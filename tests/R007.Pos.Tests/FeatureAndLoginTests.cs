@@ -138,31 +138,34 @@ public sealed class FeatureAndLoginTests
     }
 
     [Fact]
-    public async Task Login_NfcCardAlone_SignsIn_WhereAllowed()
+    public async Task Login_NfcCardAlone_NeverSignsIn_ItAsksForThePin_OnAnyStation()
     {
         var (pos, login) = await LoginEnvAsync();
         using var _ = pos;
 
         await login.HandleScanAsync(MockData.CashierNfc.ToLowerInvariant());
 
-        Assert.True(pos.Env.Auth.IsSignedIn);
-        Assert.Equal("S-1001", pos.Ctx.Staff!.StaffNumber);
+        Assert.False(pos.Env.Auth.IsSignedIn);
+        Assert.Equal(LoginStep.EnterPin, login.Step);
+        Assert.DoesNotContain(pos.Server.Requests, r => r.Path == "/api/v1/auth/staff/login"); // the card is not sent until the PIN is entered
     }
 
     [Fact]
-    public async Task Login_UnknownCard_IsRejected()
+    public async Task Login_UnknownCard_IsRejected_OncePinIsEntered()
     {
         var (pos, login) = await LoginEnvAsync();
         using var _ = pos;
 
         await login.HandleScanAsync("DEADBEEF");
+        Type(login, MockData.CashierPin);
+        await login.SignInCommand.ExecuteAsync();
 
         Assert.False(pos.Env.Auth.IsSignedIn);
         Assert.NotNull(login.Error);
     }
 
     [Fact]
-    public async Task Login_NfcPinStation_NeverSignsInOnCardAlone()
+    public async Task Login_NfcPinStation_StartsAtTapCard()
     {
         var (pos, login) = await LoginEnvAsync(requireNfcAndPin: true);
         using var _ = pos;
@@ -173,11 +176,10 @@ public sealed class FeatureAndLoginTests
 
         Assert.False(pos.Env.Auth.IsSignedIn);
         Assert.Equal(LoginStep.EnterPin, login.Step);
-        Assert.DoesNotContain(pos.Server.Requests, r => r.Path == "/api/v1/auth/staff/login"); // card not even sent until the PIN is entered
     }
 
     [Fact]
-    public async Task Login_NfcPlusPin_SignsInWithFullSession_AndRevokesTheCardOnlySession()
+    public async Task Login_NfcPlusPin_IsOneCall_CardUidIsTheIdentifier_PinIsTheSecret()
     {
         var (pos, login) = await LoginEnvAsync(requireNfcAndPin: true);
         using var _ = pos;
@@ -187,8 +189,10 @@ public sealed class FeatureAndLoginTests
         await login.SignInCommand.ExecuteAsync();
 
         Assert.True(pos.Env.Auth.IsSignedIn);
-        var calls = pos.Server.Requests.Where(r => r.Path.StartsWith("/api/v1/auth/staff/", StringComparison.Ordinal)).Select(r => r.Path[^5..]).ToList();
-        Assert.Equal(["login", "login", "ogout"], calls); // card login, PIN login, revoke the provisional card-only session
+        var call = Assert.Single(pos.Server.Requests, r => r.Path == "/api/v1/auth/staff/login");
+        Assert.Contains("\"credentialType\":\"NFC_CARD\"", call.Body, StringComparison.Ordinal);
+        Assert.Contains($"\"identifier\":\"{MockData.CashierNfc.ToUpperInvariant()}\"", call.Body, StringComparison.Ordinal);
+        Assert.DoesNotContain(pos.Server.Requests, r => r.Path.EndsWith("/logout", StringComparison.Ordinal)); // no provisional session to revoke
     }
 
     [Fact]
