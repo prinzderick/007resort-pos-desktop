@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\R007.Pos.Core\R007.Pos.Core.csproj" />
     <ProjectReference Include="..\R007.Pos.Devices\R007.Pos.Devices.csproj" />
+    <ProjectReference Include="..\R007.Pos.ViewModels\R007.Pos.ViewModels.csproj" />
   </ItemGroup>
 
   <ItemGroup>

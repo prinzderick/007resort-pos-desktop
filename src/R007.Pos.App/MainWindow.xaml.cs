@@ -24,7 +24,7 @@ public partial class MainWindow : Window
         try
         {
             var info = await _apiClient.GetSystemInfoAsync();
-            ApiText.Text = $"Connected to {info.Service} {info.Version} ({info.Mode}, {info.Environment})";
+            ApiText.Text = $"Connected to {info.Service} {info.ApiVersion} ({info.DeploymentMode})";
         }
         catch (HttpRequestException)
         {
