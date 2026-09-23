@@ -58,6 +58,35 @@ public sealed partial class XamlBindingTests
         Assert.NotNull(views);
     }
 
+    [Fact]
+    public void EveryStaticResource_ReferencedByAViewIsDefined_ElseWpfThrowsWhenTheViewLoads()
+    {
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var app = XDocument.Load(Path.Combine(ViewsDirectory(), "App.xaml"));
+        var defined = app.Descendants().Select(e => e.Attribute(x + "Key")?.Value).Where(k => k is not null).ToHashSet();
+        var problems = new List<string>();
+
+        foreach (var file in Directory.GetFiles(ViewsDirectory(), "*.xaml", SearchOption.AllDirectories).Where(f => !f.EndsWith("App.xaml", StringComparison.Ordinal)))
+        {
+            var text = File.ReadAllText(file);
+            foreach (Match match in Regex.Matches(text, @"\{StaticResource\s+([A-Za-z0-9_]+)\}"))
+            {
+                if (!defined.Contains(match.Groups[1].Value))
+                {
+                    problems.Add($"{Path.GetFileName(file)}: StaticResource '{match.Groups[1].Value}' is not defined in App.xaml");
+                }
+            }
+
+            // Values that look like markup extensions but are not valid ones would also fail at load time.
+            foreach (Match match in Regex.Matches(text, @"StringFormat=[^'""}]*\{"))
+            {
+                problems.Add($"{Path.GetFileName(file)}: unquoted StringFormat containing braces ({match.Value}); quote it: StringFormat='...'");
+            }
+        }
+
+        Assert.True(problems.Count == 0, string.Join(Environment.NewLine, problems));
+    }
+
     private static void Walk(XElement element, Type? context, Type root, List<string> problems, string file)
     {
         var current = context;

@@ -48,9 +48,7 @@ public partial class App : Application
             builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: false);
             builder.Configuration.AddEnvironmentVariables(prefix: "R007_");
 
-            var options = builder.Configuration.GetSection(PosOptions.SectionName).Get<PosOptions>() ?? new PosOptions();
-            // R007_MOCK=true maps to the root key "MOCK"; R007_Pos__Mock=true maps to Pos:Mock.
-            options.Mock |= builder.Configuration.GetValue<bool>("MOCK");
+            var options = PosOptionsLoader.Load(builder.Configuration); // includes the R007_MOCK=true shorthand
             var dataDir = ResolveDataDirectory(options);
             Directory.CreateDirectory(dataDir);
 

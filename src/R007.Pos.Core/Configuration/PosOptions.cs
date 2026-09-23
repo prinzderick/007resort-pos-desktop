@@ -40,8 +40,14 @@ public sealed class PosOptions
     /// <summary>Lock (sign out) after this many idle minutes; 0 disables. Fixed tills should not stay signed in unattended.</summary>
     public int IdleLockMinutes { get; set; } = 15;
 
-    /// <summary>Quick-add notes offered on order lines (the contract has no modifier model, only free-text line notes).</summary>
-    public List<string> QuickNotes { get; set; } = ["No ice", "Extra spicy", "Well done", "Takeaway"];
+    /// <summary>
+    /// Quick-add notes offered on order lines (the contract has no modifier model, only free-text line notes).
+    /// Empty = the built-in defaults (<see cref="DefaultQuickNotes"/>). Kept empty here because configuration binding
+    /// appends to a pre-filled list instead of replacing it.
+    /// </summary>
+    public List<string> QuickNotes { get; set; } = [];
+
+    public static readonly string[] DefaultQuickNotes = ["No ice", "Extra spicy", "Well done", "Takeaway"];
 }
 
 /// <summary>Suggested defaults for enrolment. Credentials issued by the API are stored DPAPI-protected, never here.</summary>
@@ -63,8 +69,8 @@ public sealed class OfflineOptions
 
 public sealed class PrinterOptions
 {
-    /// <summary><c>Simulated</c> (default), <c>Console</c>, <c>File</c> or <c>Windows</c> (raw ESC/POS to a Windows printer).</summary>
-    public string Kind { get; set; } = "Simulated";
+    /// <summary><c>File</c> (default: txt preview + ESC/POS bytes on disk), <c>Console</c>, <c>Simulated</c> (in memory) or <c>Windows</c> (raw ESC/POS to a Windows printer).</summary>
+    public string Kind { get; set; } = "File";
 
     /// <summary>Windows printer queue name when <see cref="Kind"/> is <c>Windows</c>.</summary>
     public string? Name { get; set; }

@@ -109,7 +109,7 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
 
     public ObservableCollection<CartLineViewModel> Lines { get; } = [];
 
-    public IReadOnlyList<string> QuickNotes => _ctx.Options.QuickNotes;
+    public IReadOnlyList<string> QuickNotes => _ctx.Options.QuickNotes.Count > 0 ? _ctx.Options.QuickNotes : R007.Pos.Core.Configuration.PosOptions.DefaultQuickNotes;
 
     public CategoryChip SelectedCategory
     {

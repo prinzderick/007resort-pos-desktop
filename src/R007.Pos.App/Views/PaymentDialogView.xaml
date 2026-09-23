@@ -93,7 +93,7 @@
                             <Button Content="Check payment" Command="{Binding PaystackVerifyCommand}" />
                         </StackPanel>
                         <TextBox Text="{Binding PaystackUrl, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Visibility="{Binding PaystackUrl, Converter={StaticResource NullToVis}}" />
-                        <TextBlock Text="{Binding PaystackReference, StringFormat=Reference: {0}}" Style="{StaticResource Muted}" Visibility="{Binding PaystackReference, Converter={StaticResource NullToVis}}" />
+                        <TextBlock Text="{Binding PaystackReference, StringFormat='Reference: {0}'}" Style="{StaticResource Muted}" Visibility="{Binding PaystackReference, Converter={StaticResource NullToVis}}" />
                         <TextBlock Text="{Binding PaystackStatus}" TextWrapping="Wrap" Visibility="{Binding PaystackStatus, Converter={StaticResource NullToVis}}" />
                     </StackPanel>
                 </Expander>
