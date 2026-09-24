@@ -92,6 +92,13 @@ public sealed class ShellViewModel : ObservableObject, INavigator
 
     public string FacilityName => _ctx.FacilityName;
 
+    /// <summary>Waiter-collected payments waiting for confirmation (null when none, or this person cannot confirm).</summary>
+    public string? CollectionsBadge => Main?.CollectionsBadgeText;
+
+    public bool HasCollectionsBadge => CollectionsBadge is not null;
+
+    public string CollectionsBadgeLabel => CollectionsBadge is { } n ? $"{n} collected by waiters - confirm" : string.Empty;
+
     /// <summary>True when running against the built-in mock server (no real backend): make that obvious on screen.</summary>
     public bool IsDemoMode => _ctx.Options.Mock;
 
@@ -181,10 +188,24 @@ public sealed class ShellViewModel : ObservableObject, INavigator
         var main = new MainViewModel(_ctx, this);
         Stage = Stage.Main;
         Current = main;
+        main.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainViewModel.CollectionsBadgeText))
+            {
+                Post(RaiseCollectionsBadge);
+            }
+        };
         OnPropertyChanged(nameof(Main));
         await main.InitializeAsync().ConfigureAwait(true);
         _ = DrainQueueAsync();
         _ = StartRealtimeAsync();
+    }
+
+    private void RaiseCollectionsBadge()
+    {
+        OnPropertyChanged(nameof(CollectionsBadge));
+        OnPropertyChanged(nameof(HasCollectionsBadge));
+        OnPropertyChanged(nameof(CollectionsBadgeLabel));
     }
 
     // Realtime hints (never a source of truth) -------------------------------------------------------------------
@@ -201,7 +222,7 @@ public sealed class ShellViewModel : ObservableObject, INavigator
             if (_ctx.ServerInfo?.Realtime is { } info && _ctx.Identity is { } identity)
             {
                 _realtime = new CancellationTokenSource();
-                _ = _ctx.Realtime.RunAsync(info, identity.DeviceId, _realtime.Token);
+                _ = _ctx.Realtime.RunAsync(info, identity.DeviceId, _realtime.Token, [$"private-facility.{identity.FacilityUnitId:D}.orders"]);
             }
         }
         catch (Exception ex) when (ex is ApiException or ApiUnavailableException)
@@ -227,6 +248,19 @@ public sealed class ShellViewModel : ObservableObject, INavigator
                 if (Main is { } main)
                 {
                     _ = main.RefreshBadgesAsync();
+                }
+
+                break;
+            case "payment.collected" or "payment.confirmed" or "payment.rejected" or "payment.expired" or "payment.alert" or "bill.printed" or "cash-handover.received":
+                if (Main is { } collections)
+                {
+                    var message = ev.Data.ValueKind == JsonValueKind.Object && ev.Data.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String ? m.GetString() : null;
+                    if (ev.Name == "payment.alert" && !string.IsNullOrWhiteSpace(message) && collections.Collections.CanConfirm)
+                    {
+                        Banner = message;
+                    }
+
+                    _ = collections.OnCollectionEventAsync(ev.Name, message);
                 }
 
                 break;

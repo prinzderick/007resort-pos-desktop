@@ -135,6 +135,11 @@
             <DataTemplate DataType="{x:Type vm:TablesViewModel}"><views:TablesView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:ReceptionViewModel}"><views:ReceptionView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:ApprovalsInboxViewModel}"><views:ApprovalsView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:CollectionsInboxViewModel}"><views:CollectionsView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:CashHandoverDeskViewModel}"><views:CashHandoverView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ConfirmCollectionViewModel}"><views:ConfirmCollectionView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:RejectCollectionViewModel}"><views:RejectCollectionView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ReceiveHandoverViewModel}"><views:ReceiveHandoverView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:CashSessionViewModel}"><views:CashSessionView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:HistoryViewModel}"><views:HistoryView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:QueueViewModel}"><views:QueueView /></DataTemplate>

@@ -113,15 +113,16 @@ public static class MockData
         Permissions.RefundExecute, Permissions.PaymentReversalExecute, Permissions.TabView, Permissions.TabOpen, Permissions.MembershipView,
         Permissions.BookingCreate, Permissions.TicketIssue, Permissions.OrderView, Permissions.PaymentView, Permissions.ReceiptView, Permissions.CashSessionView,
         Permissions.OrderLineAdd, Permissions.OrderLineRemoveUnsent, Permissions.ReportView, Permissions.OrderServe,
+        Permissions.BillPrint, Permissions.BillCancelExecute, Permissions.PaymentConfirm, Permissions.CashHandoverView, Permissions.CashHandoverReceive,
     ];
 
     public static IReadOnlyList<string> WaiterPermissions { get; } =
-        [Permissions.OrderCreate, Permissions.OrderLineAdd, Permissions.OrderLineRemoveUnsent, Permissions.OrderSend, Permissions.TabView, Permissions.TabOpen, Permissions.MembershipView, Permissions.OrderView];
+        [Permissions.OrderCreate, Permissions.OrderLineAdd, Permissions.OrderLineRemoveUnsent, Permissions.OrderSend, Permissions.TabView, Permissions.TabOpen, Permissions.MembershipView, Permissions.OrderView, Permissions.OrderServe, Permissions.BillPrint, Permissions.BillCancelExecute, Permissions.PaymentCollect, Permissions.CashHandoverCreate];
 
     public static IReadOnlyList<string> SupervisorPermissions { get; } =
     [
         .. CashierPermissions,
         Permissions.OrderVoidApprove, Permissions.OrderDiscountApprove, Permissions.OrderCompApprove,
-        Permissions.OrderPriceOverrideApprove, Permissions.RefundApprove, Permissions.PaymentReversalApprove,
+        Permissions.OrderPriceOverrideApprove, Permissions.RefundApprove, Permissions.PaymentReversalApprove, Permissions.BillCancelApprove, Permissions.CashHandoverSignoff,
     ];
 }

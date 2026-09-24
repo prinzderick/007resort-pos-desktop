@@ -29,6 +29,10 @@
                 <Button DockPanel.Dock="Right" Content="Sign out" Command="{Binding SignOutCommand}"
                         Visibility="{Binding IsSignedIn, Converter={StaticResource BoolToVis}}" />
                 <TextBlock DockPanel.Dock="Right" Text="{Binding StaffName}" FontWeight="SemiBold" Margin="12,0" />
+                <Border DockPanel.Dock="Right" Background="{StaticResource DangerBrush}" CornerRadius="10" Padding="10,2" Margin="12,0"
+                        Visibility="{Binding HasCollectionsBadge, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding CollectionsBadgeLabel}" FontWeight="Bold" />
+                </Border>
                 <TextBlock DockPanel.Dock="Right" Text="{Binding PendingText}" Foreground="{StaticResource WarnBrush}" FontWeight="Bold" Margin="12,0"
                            Visibility="{Binding HasPending, Converter={StaticResource BoolToVis}}" />
                 <TextBlock DockPanel.Dock="Right" Text="{Binding ConnectivityText}" Margin="12,0">

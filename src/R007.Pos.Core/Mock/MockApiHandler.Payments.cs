@@ -9,6 +9,11 @@ public sealed partial class MockApiHandler
     {
         string[] a;
 
+        if (RouteCollections(request, method, seg, query, body, caller) is { } collectionResponse)
+        {
+            return collectionResponse;
+        }
+
         if (method == "POST" && Match(seg, "payments", out _))
         {
             Need(caller, Permissions.PaymentTake);
@@ -20,11 +25,17 @@ public sealed partial class MockApiHandler
 
         if (method == "GET" && Match(seg, "payments", out _))
         {
-            Need(caller, Permissions.PaymentView);
-            var facility = query.TryGetValue("filter[facilityId]", out var f) ? G(f) : (Guid?)null;
+            if (!caller.Staff.Permissions.Contains(Permissions.PaymentConfirm))
+            {
+                Need(caller, Permissions.PaymentView);
+            }
+
+            ExpireDueCollections();
+            var facility = query.TryGetValue("filter[facilityId]", out var f) || query.TryGetValue("facilityId", out f) ? G(f) : (Guid?)null;
             var session = query.TryGetValue("filter[cashSessionId]", out var s) ? G(s) : (Guid?)null;
+            var status = query.GetValueOrDefault("status") ?? query.GetValueOrDefault("filter[status]");
             var items = _payments.Values
-                .Where(p => (facility is null || p.FacilityId == facility) && (session is null || p.CashSessionId == session))
+                .Where(p => (facility is null || p.FacilityId == facility) && (session is null || p.CashSessionId == session) && (status is null || p.Status == status))
                 .OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
                 .Select(p => p.ToDto()).ToList();
             return Json(200, new Page<Payment>(items, null), Ctx.PagePayment);
@@ -238,6 +249,11 @@ public sealed partial class MockApiHandler
             if (_paymentTiming.TryGetValue(order.FacilityId, out var timing) && timing != PaymentTimings.PayFirst && order.Status != OrderStatuses.Served)
             {
                 throw new MockProblem(409, "order_state_invalid", $"This facility takes payment after service; the order is {order.Status}.");
+            }
+
+            if (amount > 0m && PendingOf(order) > 0m && amount > ToDto(order).BalanceDue - PendingOf(order))
+            {
+                throw new MockProblem(409, "pending_collection_exists", "A waiter already collected money on this bill.", "Confirm or reject the collection instead of taking payment again.");
             }
 
             if (amount <= 0m || amount > ToDto(order).BalanceDue)

@@ -1,0 +1,23 @@
+<UserControl x:Class="R007.Pos.App.Views.RejectCollectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:R007.Pos.ViewModels.Screens;assembly=R007.Pos.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:RejectCollectionViewModel}">
+    <StackPanel MinWidth="560">
+        <TextBlock Style="{StaticResource Heading}" Text="{Binding Title}" />
+        <TextBlock Text="{Binding Summary}" FontSize="18" TextWrapping="Wrap" />
+        <Border Background="{StaticResource DangerBrush}" CornerRadius="6" Padding="10,8" Margin="0,10,0,0">
+            <TextBlock Text="{Binding WarningText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+        </Border>
+        <TextBlock Text="Reason (required, recorded in the audit trail)" Style="{StaticResource Muted}" Margin="0,10,0,0" />
+        <TextBox Text="{Binding Reason, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBlock Style="{StaticResource ErrorText}" Text="{Binding Error}" Margin="0,10,0,0" Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Style="{StaticResource DangerButton}" Content="Reject and alert supervisor" Command="{Binding RejectCommand}" MinWidth="240" MinHeight="56" />
+            <Button Content="Cancel" Command="{Binding CancelCommand}" MinWidth="120" MinHeight="56" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

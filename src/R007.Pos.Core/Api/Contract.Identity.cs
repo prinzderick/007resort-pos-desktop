@@ -182,6 +182,8 @@ public static class Permissions
     public const string ReportView = "report.view";
 
     // Waiter collection (bill, confirm, cash handover)
+    public const string PaymentCollect = "payment.collect";
+    public const string CashHandoverCreate = "cash_handover.create";
     public const string BillPrint = "bill.print";
     public const string BillCancelExecute = "bill.cancel.execute";
     public const string BillCancelApprove = "bill.cancel.approve";

@@ -104,7 +104,29 @@
                     <TextBlock Text="{Binding OrderNumberText}" Style="{StaticResource Muted}" />
                     <TextBlock Text="{Binding TabBalanceText}" Foreground="{StaticResource WarnBrush}" FontWeight="SemiBold"
                                Visibility="{Binding IsTabTarget, Converter={StaticResource BoolToVis}}" />
+                    <TextBlock Text="{Binding StateChipsText}" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" TextWrapping="Wrap"
+                               Visibility="{Binding HasStateChips, Converter={StaticResource BoolToVis}}" />
+                    <TextBlock Text="{Binding BillText}" Style="{StaticResource Muted}" Visibility="{Binding IsBilled, Converter={StaticResource BoolToVis}}" />
                     <TextBlock Text="{Binding StatusBanner}" Foreground="{StaticResource WarnBrush}" FontWeight="Bold" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    <StackPanel Visibility="{Binding HasOpenOrders, Converter={StaticResource BoolToVis}}" Margin="0,6,0,0">
+                        <TextBlock Text="Open orders here (tap to load)" Style="{StaticResource Muted}" />
+                        <ItemsControl ItemsSource="{Binding OpenOrders}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:OpenOrderRow}">
+                                    <Button HorizontalContentAlignment="Stretch" MinHeight="40" FontSize="14"
+                                            Command="{Binding DataContext.SelectOpenOrderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding StatusText}" Style="{StaticResource Muted}" />
+                                            <TextBlock Text="{Binding ChipsText}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource WarnBrush}"
+                                                       Visibility="{Binding HasChips, Converter={StaticResource BoolToVis}}" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                 </StackPanel>
 
                 <StackPanel Grid.Row="1">
@@ -171,6 +193,8 @@
                 <WrapPanel Grid.Row="4" Margin="0,8,0,0">
                     <Button Content="Send" Command="{Binding SendCommand}" />
                     <Button Content="Mark served" Command="{Binding ServeCommand}" />
+                    <Button Content="Print bill" Command="{Binding PrintBillCommand}" />
+                    <Button Content="Reopen bill" Command="{Binding ReopenBillCommand}" Visibility="{Binding IsBilled, Converter={StaticResource BoolToVis}}" />
                     <Button Style="{StaticResource PrimaryButton}" Content="Pay" Command="{Binding PayCommand}" MinWidth="110" />
                     <Button Style="{StaticResource PrimaryButton}" Content="Settle tab" Command="{Binding SettleTabCommand}"
                             Visibility="{Binding IsTabTarget, Converter={StaticResource BoolToVis}}" />

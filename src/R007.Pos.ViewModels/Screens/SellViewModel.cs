@@ -20,6 +20,22 @@ public sealed class ProductTile(Product product)
     public bool IsAvailable => Product.Active;
 }
 
+/// <summary>An unpaid order on the current table/tab, with its bill-state chips; picking it loads it into the cart so it can be billed, served or paid.</summary>
+public sealed class OpenOrderRow(OrderSummary order)
+{
+    public OrderSummary Order { get; } = order;
+
+    public string Title => $"{Order.Number}  {MoneyFormat.Display(Order.Total)}";
+
+    public string StatusText => Order.Status.Replace('_', ' ');
+
+    public IReadOnlyList<OrderChip> Chips { get; } = OrderStateChips.For(order);
+
+    public string ChipsText => OrderStateChips.Joined(Chips);
+
+    public bool HasChips => Chips.Count > 0;
+}
+
 public sealed class CartLineViewModel(WorkingLine line)
 {
     public WorkingLine Line { get; } = line;
@@ -82,6 +98,9 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
         PayCommand = new AsyncRelayCommand(PayOrderAsync, () => CanPayOrder, SetError);
         SettleTabCommand = new AsyncRelayCommand(SettleTabAsync, () => CanSettleTab, SetError);
         VoidCommand = new AsyncRelayCommand(VoidAsync, () => CanVoid, SetError);
+        PrintBillCommand = new AsyncRelayCommand(PrintBillAsync, () => CanPrintBill, SetError);
+        ReopenBillCommand = new AsyncRelayCommand(ReopenBillAsync, () => CanReopenBill, SetError);
+        SelectOpenOrderCommand = new AsyncRelayCommand(p => SelectOpenOrderAsync(p as OpenOrderRow), null, SetError);
         DiscountCommand = new AsyncRelayCommand(p => AdjustAsync(p as CartLineViewModel, AdjustmentKinds.DiscountPercent), null, SetError);
         CompCommand = new AsyncRelayCommand(p => AdjustAsync(p as CartLineViewModel, AdjustmentKinds.Comp), null, SetError);
         PriceOverrideCommand = new AsyncRelayCommand(p => AdjustAsync(p as CartLineViewModel, AdjustmentKinds.PriceOverride), null, SetError);
@@ -109,6 +128,11 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
     public ObservableCollection<ProductTile> VisibleProducts { get; } = [];
 
     public ObservableCollection<CartLineViewModel> Lines { get; } = [];
+
+    /// <summary>Unpaid orders already on this table/tab (the cashier picks one to print its bill, serve or take payment).</summary>
+    public ObservableCollection<OpenOrderRow> OpenOrders { get; } = [];
+
+    public bool HasOpenOrders => OpenOrders.Count > 0;
 
     public IReadOnlyList<string> QuickNotes => _ctx.Options.QuickNotes.Count > 0 ? _ctx.Options.QuickNotes : R007.Pos.Core.Configuration.PosOptions.DefaultQuickNotes;
 
@@ -217,14 +241,36 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
         null => string.Empty,
         { IsPendingConfirmation: true } => "PENDING CONFIRMATION: saved on this terminal, not yet on the server.",
         { PendingApprovalId: not null } => "Waiting for supervisor approval.",
+        { FullyCollectedByWaiter: true } => "COLLECTED BY WAITER - awaiting confirmation. Confirm or reject it in 'Collected by waiters'; do not take payment again.",
+        { HasPendingCollection: true } => "Part of this bill is already collected by a waiter and awaits confirmation.",
+        { IsBilled: true } => $"BILL PRINTED{BillCountSuffix} - the order is frozen. Awaiting payment.",
         _ when AwaitingService && CanServe => "Payment is taken after service: mark the order served once the items are ready.",
         _ => string.Empty,
     };
 
-    // Actions gating (UI only; the API enforces) -----------------------------------------------------------------
-    public bool CanSend => _order is { IsDraft: true, HasLines: true } && _ctx.Features.CanSend && _order.PendingApprovalId is null;
+    public bool IsBilled => _order?.IsBilled == true;
 
-    public bool CanPayOrder => _order is { HasLines: true, IsClosed: false } && _ctx.Features.CanPay && _order.PendingApprovalId is null && !AwaitingService && !FullyPaid;
+    private string BillCountSuffix => _order?.BillPrintCount is > 1 ? $" (printed {_order.BillPrintCount} times)" : string.Empty;
+
+    /// <summary>Reprint counter for the cashier: "Bill printed x2".</summary>
+    public string BillText => _order is { IsBilled: true } o ? $"Bill printed x{o.BillPrintCount ?? 1}" : string.Empty;
+
+    public IReadOnlyList<OrderChip> StateChips => _order is null ? [] : OrderStateChips.For(_order);
+
+    public string StateChipsText => OrderStateChips.Joined(StateChips);
+
+    public bool HasStateChips => StateChips.Count > 0;
+
+    /// <summary>Print (or reprint) the pre-bill for this order. A draft is only billable at a pay-first facility.</summary>
+    public bool CanPrintBill => _order is { IsPendingConfirmation: false, IsClosed: false, HasLines: true, PendingApprovalId: null } o
+        && _ctx.Features.CanPrintBill && (!o.IsDraft || _ctx.Features.PayFirst) && !FullyPaid && !o.FullyCollectedByWaiter && o.Total is > 0m;
+
+    public bool CanReopenBill => _order is { IsBilled: true, IsPendingConfirmation: false, HasPendingCollection: false } && _ctx.Features.CanReopenBill;
+
+    // Actions gating (UI only; the API enforces) -----------------------------------------------------------------
+    public bool CanSend => _order is { IsDraft: true, HasLines: true, IsBilled: false } && _ctx.Features.CanSend && _order.PendingApprovalId is null;
+
+    public bool CanPayOrder => _order is { HasLines: true, IsClosed: false, FullyCollectedByWaiter: false } && _ctx.Features.CanPay && _order.PendingApprovalId is null && !AwaitingService && !FullyPaid;
 
     /// <summary>Pay-after-service facility (Restaurant): the node only takes payment for a SERVED order, so paying is offered once it is served.</summary>
     public bool AwaitingService => _ctx.Features.PayAfterService && _order is { IsPendingConfirmation: false } o && o.Status != OrderStatuses.Served;
@@ -237,15 +283,15 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
 
     public bool CanSettleTab => _tab is { IsOpen: true } && _ctx.Features.CanPay;
 
-    public bool CanVoid => _order is { IsClosed: false, PendingApprovalId: null, IsPendingConfirmation: false } && _ctx.Features.CanVoid;
+    public bool CanVoid => _order is { IsClosed: false, IsBilled: false, PendingApprovalId: null, IsPendingConfirmation: false } && _ctx.Features.CanVoid;
 
-    public bool CanDiscount => _ctx.Features.CanDiscount && !IsPendingConfirmation;
+    public bool CanDiscount => _ctx.Features.CanDiscount && !IsPendingConfirmation && !IsBilled;
 
-    public bool CanComp => _ctx.Features.CanComp && !IsPendingConfirmation;
+    public bool CanComp => _ctx.Features.CanComp && !IsPendingConfirmation && !IsBilled;
 
-    public bool CanPriceOverride => _ctx.Features.CanPriceOverride && !IsPendingConfirmation;
+    public bool CanPriceOverride => _ctx.Features.CanPriceOverride && !IsPendingConfirmation && !IsBilled;
 
-    public bool CanEditLines => _order is { IsDraft: true, IsPendingConfirmation: false } && _ctx.Features.CanRemoveLines;
+    public bool CanEditLines => _order is { IsDraft: true, IsPendingConfirmation: false, IsBilled: false } && _ctx.Features.CanRemoveLines;
 
     public AsyncRelayCommand AddProductCommand { get; }
 
@@ -264,6 +310,12 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
     public AsyncRelayCommand SettleTabCommand { get; }
 
     public AsyncRelayCommand VoidCommand { get; }
+
+    public AsyncRelayCommand PrintBillCommand { get; }
+
+    public AsyncRelayCommand ReopenBillCommand { get; }
+
+    public AsyncRelayCommand SelectOpenOrderCommand { get; }
 
     public AsyncRelayCommand DiscountCommand { get; }
 
@@ -291,6 +343,8 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
         {
             await RunAsync(RefreshTabAsync).ConfigureAwait(true);
         }
+
+        await RefreshOpenOrdersQuietlyAsync().ConfigureAwait(true);
     }
 
     public override async Task ActivateAsync()
@@ -300,6 +354,120 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
         {
             await RunAsync(RefreshTabAsync).ConfigureAwait(true);
         }
+
+        await RefreshOpenOrdersQuietlyAsync().ConfigureAwait(true);
+    }
+
+    private async Task RefreshOpenOrdersQuietlyAsync()
+    {
+        OpenOrders.Clear();
+        if (_target.TableId is null && _target.Tab is null)
+        {
+            OnPropertyChanged(nameof(HasOpenOrders));
+            return;
+        }
+
+        try
+        {
+            var page = await _ctx.Api.ListOrdersAsync(_ctx.FacilityId, "DRAFT,SENT,IN_PREPARATION,READY,SERVED", _target.Tab?.Id, null, 100).ConfigureAwait(true);
+            foreach (var o in page.Items.Where(o => _target.Tab is not null || o.TableId == _target.TableId))
+            {
+                OpenOrders.Add(new OpenOrderRow(o));
+            }
+        }
+        catch (Exception ex) when (ex is ApiException or ApiUnavailableException)
+        {
+            // The list is a convenience: the cart still works without it.
+        }
+
+        OnPropertyChanged(nameof(HasOpenOrders));
+    }
+
+    private async Task SelectOpenOrderAsync(OpenOrderRow? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        Error = null;
+        _order = WorkingOrder.FromServer(await _ctx.Api.GetOrderAsync(row.Order.Id).ConfigureAwait(true));
+        RebuildCart();
+    }
+
+    private async Task PrintBillAsync()
+    {
+        Error = null;
+        await RefreshOrderAsync().ConfigureAwait(true);
+        if (_order is not { } order || !CanPrintBill)
+        {
+            return;
+        }
+
+        BillResult? result = null;
+        try
+        {
+            result = await _ctx.Api.PrintBillAsync(order.Id, new BillRequest(), IdempotencyKeys.New()).ConfigureAwait(true);
+        }
+        catch (ApiException ex) when (ex.Code == "supervisor_required")
+        {
+            var modal = new SensitiveActionViewModel(
+                _ctx,
+                "Print the bill again",
+                $"The bill for {order.Number} was cancelled before, so a supervisor must authorise printing it again.",
+                Permissions.BillCancelApprove,
+                async input =>
+                {
+                    result = await _ctx.Api.PrintBillAsync(order.Id, new BillRequest(), IdempotencyKeys.New(), input.StepUpToken).ConfigureAwait(true);
+                    return new SensitiveResult(true, null);
+                },
+                false,
+                "order",
+                order.Id);
+            await _nav.ShowModalAsync(modal).ConfigureAwait(true);
+        }
+
+        if (result is null)
+        {
+            return;
+        }
+
+        _order = WorkingOrder.FromServer(result.Order);
+        RebuildCart();
+        var printed = await _ctx.Printing.PrintBillAsync(result.Bill).ConfigureAwait(true);
+        Info = (result.Reprint ? $"Bill reprinted (print #{result.Bill.PrintCount}). " : "Bill printed. ") + printed.Message;
+        await RefreshOpenOrdersQuietlyAsync().ConfigureAwait(true);
+        if (_tab is not null)
+        {
+            await RefreshTabAsync().ConfigureAwait(true);
+        }
+    }
+
+    private async Task ReopenBillAsync()
+    {
+        Error = null;
+        var order = _order!;
+        var modal = new SensitiveActionViewModel(
+            _ctx,
+            "Reopen the bill",
+            $"Reopen {order.Number} so it can be changed. A supervisor must approve; a new bill must be printed afterwards.",
+            Permissions.BillCancelApprove,
+            async input =>
+            {
+                var r = await _ctx.Api.CancelBillAsync(order.Id, new CancelBillRequest(input.Reason), IdempotencyKeys.New(), input.StepUpToken).ConfigureAwait(true);
+                return new SensitiveResult(r.Order is not null, r.Pending?.Approval.Id);
+            },
+            true,
+            "order",
+            order.Id);
+        await _nav.ShowModalAsync(modal).ConfigureAwait(true);
+        await RunAsync(RefreshOrderAsync).ConfigureAwait(true);
+        if (modal.Outcome == SensitiveOutcome.Applied)
+        {
+            Info = "Bill reopened. Print a new bill when the order is ready.";
+        }
+
+        await RefreshOpenOrdersQuietlyAsync().ConfigureAwait(true);
     }
 
     private void NewOrder()
@@ -328,7 +496,7 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
     private async Task AddProductAsync(Product product)
     {
         Error = null;
-        if (_order is { IsDraft: false } or { IsClosed: true })
+        if (_order is { IsDraft: false } or { IsClosed: true } or { IsBilled: true })
         {
             _order = null; // a sent/closed order is final: the next item starts a new one on the same table/tab
         }
@@ -369,6 +537,7 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
         _order = await _ctx.Orders.SendAsync(_order!).ConfigureAwait(true);
         RebuildCart();
         Info = _order.IsPendingConfirmation ? "Send saved on this terminal: NOT confirmed until the server is back." : "Sent.";
+        await RefreshOpenOrdersQuietlyAsync().ConfigureAwait(true);
         if (_tab is not null)
         {
             await RefreshTabAsync().ConfigureAwait(true);
@@ -388,6 +557,7 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
         {
             _order = WorkingOrder.FromServer(await _ctx.Api.ServeOrderAsync(order.Id, order.RowVersion, IdempotencyKeys.New()).ConfigureAwait(true));
             Info = "Served.";
+            await RefreshOpenOrdersQuietlyAsync().ConfigureAwait(true);
         }
         catch (ApiException ex) when (ex.Code == "order_state_invalid")
         {
@@ -497,6 +667,7 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
                 }
             }).ConfigureAwait(true);
             Info = modal.ChangeText ?? "Paid.";
+            await RefreshOpenOrdersQuietlyAsync().ConfigureAwait(true);
         }
     }
 
@@ -623,7 +794,7 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
         foreach (var name in new[]
         {
             nameof(Order), nameof(HasOrder), nameof(IsPendingConfirmation), nameof(OrderNumberText), nameof(SubtotalText), nameof(DiscountText),
-            nameof(TaxText), nameof(TotalText), nameof(BalanceText), nameof(StatusBanner), nameof(CanEditLines), nameof(CanDiscount), nameof(CanComp), nameof(CanPriceOverride),
+            nameof(TaxText), nameof(TotalText), nameof(BalanceText), nameof(StatusBanner), nameof(IsBilled), nameof(BillText), nameof(StateChips), nameof(StateChipsText), nameof(HasStateChips), nameof(CanEditLines), nameof(CanDiscount), nameof(CanComp), nameof(CanPriceOverride),
         })
         {
             OnPropertyChanged(name);
@@ -641,6 +812,10 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
         OnPropertyChanged(nameof(CanSettleTab));
         OnPropertyChanged(nameof(CanVoid));
         OnPropertyChanged(nameof(CanEditLines));
+        OnPropertyChanged(nameof(CanPrintBill));
+        OnPropertyChanged(nameof(CanReopenBill));
+        PrintBillCommand.RaiseCanExecuteChanged();
+        ReopenBillCommand.RaiseCanExecuteChanged();
         SendCommand.RaiseCanExecuteChanged();
         ServeCommand.RaiseCanExecuteChanged();
         PayCommand.RaiseCanExecuteChanged();

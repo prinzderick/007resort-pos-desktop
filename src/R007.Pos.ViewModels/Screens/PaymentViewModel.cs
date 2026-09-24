@@ -396,7 +396,7 @@ public sealed class PaymentViewModel : ModalViewModel
         catch (ApiException ex)
         {
             Error = Describe(ex);
-            if (ex.Code is "balance_changed" or "order_state_invalid" or "concurrency_conflict")
+            if (ex.Code is "balance_changed" or "order_state_invalid" or "concurrency_conflict" or "pending_collection_exists" or "over_collection")
             {
                 _attempt = null; // the world changed: a fresh attempt (new key) is required after the operator re-checks
             }

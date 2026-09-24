@@ -181,3 +181,21 @@ public sealed record CashInHand(
     int? OpenHandovers,
     decimal? UnsignedShortfall,
     string? WaiterName = null);
+
+/// <summary>Waiter-side request (<c>POST /orders/{id}/collections</c>). The POS never sends it; it exists for the mock server, tests and the harness.</summary>
+public sealed record CollectionRequest(
+    string TenderType,
+    decimal Amount,
+    Guid? Id = null,
+    decimal? Tendered = null,
+    Guid? TerminalId = null,
+    string? ApprovalCode = null,
+    string? SlipReference = null,
+    string? Last4 = null,
+    string? BankReference = null,
+    string? Note = null);
+
+public sealed record CollectionResult(Payment Payment, OrderSummary? Order, Guid? ReceiptId = null);
+
+/// <summary>Waiter-side request (<c>POST /cash-handovers</c>); for the mock server, tests and the harness.</summary>
+public sealed record DeclareHandoverRequest(decimal DeclaredAmount, Guid? Id = null, Guid? FacilityId = null, string? Note = null);
