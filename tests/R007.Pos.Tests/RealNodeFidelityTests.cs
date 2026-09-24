@@ -37,6 +37,19 @@ public sealed class RealNodeFidelityTests
         Assert.Equal(3500m, filled.NonCash!["TRANSFER"]);
     }
 
+    [Theory]
+    [InlineData("http", "ws")]
+    [InlineData("https", "wss")]
+    [InlineData("ws", "ws")]
+    [InlineData("wss", "wss")]
+    public void RealtimeUri_MapsTheNodesHttpSchemeToAWebSocketScheme(string advertised, string expected)
+    {
+        // system/info reports realtime.scheme "http"; ClientWebSocket only accepts ws/wss.
+        var uri = R007.Pos.Core.Realtime.RealtimeClient.BuildUri(new RealtimeInfo(advertised, "127.0.0.1", 8081, "r007-local-key"));
+        Assert.Equal(expected, uri.Scheme);
+        Assert.Equal("/app/r007-local-key", uri.AbsolutePath);
+    }
+
     [Fact]
     public async Task Ping_UsesTheServerRootHealthProbe_NotApiV1()
     {

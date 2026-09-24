@@ -61,10 +61,33 @@ public static class EnrolAndLogin
         Check.Equal("Ngozi Eze", rig.Auth.Staff!.DisplayName, "staff name from PIN sign-in");
         Check.True(rig.Auth.Staff.Has(Permissions.PaymentTake), "cashier holds payment.take");
 
-        // refresh: single flight + rotating refresh token
-        var refreshed = await rig.Node.Raw.PostAsync("auth/staff/refresh", new JsonObject { ["refreshToken"] = rig.Auth.RefreshToken }, deviceToken: rig.DeviceToken);
+        // refresh tokens rotate: a second use of the same refresh token is refused (on a throw-away session, not the terminal's own)
+        var throwaway = (await rig.Node.Raw.PostAsync("auth/staff/login", new JsonObject { ["credentialType"] = "PIN", ["identifier"] = "S-0005", ["secret"] = "1234" }, deviceToken: rig.DeviceToken)).Ok("second login").Json["refreshToken"]!.GetValue<string>();
+        var refreshed = await rig.Node.Raw.PostAsync("auth/staff/refresh", new JsonObject { ["refreshToken"] = throwaway }, deviceToken: rig.DeviceToken);
         Check.Equal(HttpStatusCode.OK, refreshed.Status, "refresh");
         Check.True(refreshed.Json["accessToken"] is not null && refreshed.Json["refreshToken"] is not null, "refresh returns a token pair");
+        var reused = await rig.Node.Raw.PostAsync("auth/staff/refresh", new JsonObject { ["refreshToken"] = throwaway }, deviceToken: rig.DeviceToken);
+        Check.Equal(HttpStatusCode.Unauthorized, reused.Status, "a used refresh token is refused (rotation)");
+
+        // an expired/invalid access token: the pipeline refreshes ONCE (single flight, rotating refresh token) and replays every waiting request
+        var goodRefresh = rig.Auth.RefreshToken!;
+        rig.Auth.UpdateTokens(new AuthResult("r7a_expired_or_bad", goodRefresh, 900, rig.Auth.Staff!, null), DateTimeOffset.UtcNow);
+        var results = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => rig.Api.GetOpenCashSessionAsync(rig.Ctx.FacilityId, rig.Auth.Staff!.Id)));
+        Check.True(results.Length == 6 && rig.Auth.IsSignedIn, "six parallel requests survived a token refresh");
+        Check.True(rig.Auth.AccessToken != "r7a_expired_or_bad" && rig.Auth.RefreshToken != goodRefresh, "tokens rotated exactly once");
+
+        // the node accepts If-Match both as its own ETag form (\"3\") and prefixed (\"v3\")
+        var probe = rig.NewSell();
+        await rig.FreshCashSessionAsync();
+        await probe.AddProductCommand.ExecuteAsync(new ProductTile(rig.Product("GOODS-SPORTS-DRINK")));
+        var order = probe.Order!;
+        foreach (var form in new[] { $"\"v{order.RowVersion}\"", $"\"{order.RowVersion + 1}\"" })
+        {
+            var line = new JsonObject { ["productId"] = rig.Product("GOODS-SPORTS-DRINK").Id.ToString("D"), ["quantity"] = 1 };
+            var version = (await rig.Api.GetOrderAsync(order.Id)).RowVersion;
+            var response = await rig.Node.Raw.PostAsync($"orders/{order.Id:D}/lines", line, rig.Auth.AccessToken, rig.DeviceToken, ifMatch: form.Contains('v') ? $"\"v{version}\"" : $"\"{version}\"");
+            Check.Equal(HttpStatusCode.Created, response.Status, $"If-Match {form.Replace(order.RowVersion.ToString(), "n", StringComparison.Ordinal)}");
+        }
 
         await rig.Ctx.SignOutAsync();
         Check.True(!rig.Auth.IsSignedIn, "signed out locally");

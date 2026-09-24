@@ -8,6 +8,10 @@ same tests on Windows. Everything below needs a person with a Windows till, a pr
 Use mock mode (`R007_MOCK=true`) for steps 1 to 4 so the backend is not a variable; repeat the marked ones against the
 real API.
 
+> **Update:** the client layer (API client, pipeline, view-models, queue, receipt rendering) has since been driven against a REAL node from
+> macOS (`tools/R007.Pos.Harness`, see [REAL_API_TEST_REPORT.md](REAL_API_TEST_REPORT.md)). Items marked *(client layer verified against the real node)*
+> below no longer need the backend to be checked for logic; on Windows they only need the hardware/OS part (WPF, DPAPI, spooler, devices, sleep/wake).
+
 ## 1. WPF rendering and touch (run once per screen size)
 
 - [ ] App starts maximised on the till display (1024x768 up to 1920x1080); no clipped controls at 1024x700.
@@ -54,6 +58,8 @@ RAW-capable driver; the app sends RAW bytes, so a graphics driver must not re-re
 
 ## 5. Offline behaviour against a real node (repeat with the backend)
 
+*(Queue, ordered idempotent replay, refusal surfacing and the encrypted file were verified against the real node with the node stopped/started: `offline-replay`. On Windows check DPAPI-backed keys and the UI states.)*
+
 - [ ] Pull the network cable mid-sale: status bar turns `OFFLINE`; with `allowOfflineOrders` the cart keeps working as
       **PENDING CONFIRMATION** with a labelled ESTIMATE; card/transfer/Paystack payments are refused with the cash-only message.
 - [ ] Take a cash payment offline: dialog says NOT CONFIRMED, no receipt prints, Queue tab lists it.
@@ -67,6 +73,8 @@ RAW-capable driver; the app sends RAW bytes, so a graphics driver must not re-re
 
 ## 6. Realtime (Reverb) and supervisor approvals (needs a live node)
 
+*(Subscription + `approval.decided` push against the live Reverb: verified by `realtime-approval`. Still to do here: reconnect after Reverb restart, sleep/wake, `device.command`.)*
+
 - [ ] `GET /system/info` advertises `realtime`; the POS subscribes to `private-device.{id}` (check `POST /broadcasting/auth` 200).
 - [ ] A void/discount that needs approval: a supervisor tablet gets `approval.requested`; approving there wakes the waiting
       dialog within about a second (otherwise within the 2 s poll).
@@ -76,10 +84,10 @@ RAW-capable driver; the app sends RAW bytes, so a graphics driver must not re-re
 
 ## 7. Contract-dependent behaviour to confirm with the backend (see api-contract-notes.md)
 
-- [ ] `If-Match` values: `"v{rowVersion}"` is accepted by the API for lines/send/void/adjustments/tab orders/booking confirm.
+- [x] `If-Match` values: `"v{rowVersion}"` and the bare `"{rowVersion}"` are accepted by the node (lines, send, void, adjustments, booking order/confirm, tab orders).
 - [ ] Barcode lookup through `GET /catalog/products?q=`: does `q` match the barcode/SKU column? (mock does; the contract just says `q`).
-- [ ] Booking flow: rentals added to `booking.orderId` are included in the amount confirmed by `POST /bookings/{id}/confirm`.
-- [ ] `requireCashSession` facilities reject cash without a session (`cash_session_required`) and the POS message matches.
+- [x] Booking flow: the node's hold has no order; the POS builds the order, attaches it and pays through `POST /payments` (`reception-booking`).
+- [x] `requireCashSession` facilities reject cash without a session (`409 cash_session_required`; `cash-session` scenario). Check the POS message on screen.
 - [ ] Shift report: `expectedCash`, `countedCash`, `variance` and per-tender totals reconcile with the payments list; the
       `freshness.stale` warning appears when the node is degraded.
 - [ ] Time zone: receipts print Africa/Lagos time (UTC+1).

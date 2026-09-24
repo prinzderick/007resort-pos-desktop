@@ -76,8 +76,19 @@ public sealed class RealtimeClient(IR007ApiClient api, Func<IRealtimeSocket> soc
 
     public event Action<bool>? ConnectionChanged;
 
-    public static Uri BuildUri(RealtimeInfo info) =>
-        new($"{info.Scheme}://{info.Host}:{info.Port}/app/{Uri.EscapeDataString(info.AppKey)}?protocol=7&client=r007-pos&version=0.1&flash=false");
+    /// <summary>
+    /// <c>system/info</c> reports the Reverb <c>scheme</c> as <c>http</c>/<c>https</c> (the node's REVERB_SCHEME); a WebSocket needs
+    /// <c>ws</c>/<c>wss</c>, so the scheme is mapped here (an already-<c>ws</c> value is kept).
+    /// </summary>
+    public static Uri BuildUri(RealtimeInfo info)
+    {
+        var scheme = info.Scheme.ToLowerInvariant() switch
+        {
+            "https" or "wss" => "wss",
+            _ => "ws",
+        };
+        return new Uri($"{scheme}://{info.Host}:{info.Port}/app/{Uri.EscapeDataString(info.AppKey)}?protocol=7&client=r007-pos&version=0.1&flash=false");
+    }
 
     public async Task RunAsync(RealtimeInfo info, Guid deviceId, CancellationToken ct)
     {

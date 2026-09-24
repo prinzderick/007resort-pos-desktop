@@ -92,7 +92,10 @@ src/
   R007.Pos.App/         WPF views (XAML), composition root, wedge input hook. net10.0-windows.
 tests/R007.Pos.Tests/   xUnit: view models, API client vs mock/fake handlers, queue crypto/replay, money,
                         receipt snapshot, approvals, contract conformance, XAML binding guard.
-docs/                   configuration.md, api-contract-notes.md, windows-hardware-verification.md
+tests/R007.Pos.IntegrationTests/  category "RealNode": the harness scenarios as xunit tests, skipped unless R007_API_BASE_URL is set.
+tools/R007.Pos.Harness/ console harness: the real Core/client/view-model/receipt stack against a REAL running node
+                        (enrolment, login, orders, approvals, payments, cash, receipts, Reception, offline replay).
+docs/                   configuration.md, api-contract-notes.md, REAL_API_TEST_REPORT.md, windows-hardware-verification.md
 ```
 
 ## Prerequisites
@@ -111,7 +114,20 @@ dotnet run --project src/R007.Pos.App                          # Windows only
 ```
 
 CI (`.github/workflows/ci.yml`) builds and tests the whole solution on `windows-latest` and runs a gitleaks
-secret scan on every push/PR to `main`.
+secret scan on every push/PR to `main`. The `RealNode` tests are skipped there (no node).
+
+### Against a real node (no mock)
+
+```bash
+export R007_API_BASE_URL=http://127.0.0.1:8080/api/v1                       # the local node (LOCAL_NODE.md)
+export R007_NODE_SCRIPT=<repos>/work/api-integration/scripts/local-node.sh  # optional: enables the stop/start outage scenario
+dotnet run --project tools/R007.Pos.Harness -- --list
+dotnet run --project tools/R007.Pos.Harness -- -v                            # all scenarios (PASS/FAIL per scenario)
+dotnet test tests/R007.Pos.IntegrationTests                                  # same, as xunit (category RealNode)
+```
+
+Each scenario enrols a fresh terminal with a new one-time registration code, so it needs the seeded demo data. Results and the bugs this
+found on both sides: [docs/REAL_API_TEST_REPORT.md](docs/REAL_API_TEST_REPORT.md).
 
 ## Configuration
 
@@ -119,7 +135,7 @@ See [docs/configuration.md](docs/configuration.md). No secrets are stored in con
 
 ## Contract
 
-Types mirror `api/openapi/v1.yaml` (statuses stay strings so a newer API cannot break parsing). Spec drift is
+Types mirror the node's `docs/openapi/v1.yaml` as verified live (statuses stay strings so a newer API cannot break parsing). Spec drift is
 guarded by `ContractConformanceTests` (example payloads and schema property lists copied into
 `tests/R007.Pos.Tests/ContractFixtures`). Assumptions and requests to the contract owners:
 [docs/api-contract-notes.md](docs/api-contract-notes.md).

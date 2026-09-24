@@ -16,6 +16,7 @@ public static class ApprovalFlow
         new("approval-stepup", "Supervisor at the till: step-up token applies the void at once", VoidStepUp),
         new("approval-discount", "Line discount needs approval; the discounted total is the server's", Discount),
         new("approval-cancel", "Cashier cancels a waiting request; a late decision is refused", Cancel),
+        new("realtime-approval", "Reverb: POS RealtimeClient subscribes to private-device.{id}; the approval decision is pushed as a hint", Realtime),
     ];
 
     private static async Task<(PosRig Cashier, PosRig Supervisor)> RigsAsync(NodeContext node)
@@ -266,5 +267,53 @@ public static class ApprovalFlow
         Check.Equal(ApprovalStatuses.Cancelled, approval.Status, "approval CANCELLED");
         var late = await Check.ThrowsApiAsync(async () => await supervisor.Api.DecideApprovalAsync(approval.Id, new ApprovalDecisionRequest(ApprovalDecisions.Approve), IdempotencyKeys.New()), "late decision");
         Check.Equal("approval_already_decided", late.Code, "late decision code");
+    }
+
+    private static async Task Realtime(NodeContext node)
+    {
+        var (cashier, supervisor) = await RigsAsync(node);
+        using var _c = cashier;
+        using var _s = supervisor;
+        var check = await cashier.Ctx.CheckServerAsync();
+        var info = Check.NotNull(check.Info?.Realtime, "system/info advertises the Reverb endpoint");
+        node.Log($"reverb at {info.Scheme}://{info.Host}:{info.Port} key {info.AppKey}");
+
+        var events = new System.Collections.Concurrent.ConcurrentQueue<R007.Pos.Core.Realtime.RealtimeEvent>();
+        var subscribed = new TaskCompletionSource();
+        cashier.Ctx.Realtime.EventReceived += e => events.Enqueue(e);
+        cashier.Ctx.Realtime.Subscribed += () => subscribed.TrySetResult();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var run = cashier.Ctx.Realtime.RunAsync(info, cashier.Ctx.Identity!.DeviceId, cts.Token);
+        var first = await Task.WhenAny(subscribed.Task, run, Task.Delay(TimeSpan.FromSeconds(15)));
+        Check.True(first == subscribed.Task, "subscribed to private-device.{id} (auth via POST /broadcasting/auth)");
+
+        var sell = await SentOrderAsync(cashier);
+        var orderId = sell.Order!.Id;
+        var decider = Task.CompletedTask;
+        var applied = await RunVoidAsync(cashier, sell, async modal =>
+        {
+            modal.Reason = "realtime test";
+            decider = SupervisorDecidesAsync(supervisor, orderId, ApprovalDecisions.Approve, "ok");
+            await modal.SubmitCommand.ExecuteAsync();
+        });
+        await decider;
+        Check.True(applied, "void applied");
+
+        for (var i = 0; i < 40 && !events.Any(e => e.Name.StartsWith("approval", StringComparison.Ordinal)); i++)
+        {
+            await Task.Delay(250);
+        }
+
+        node.Log("events: " + string.Join(", ", events.Select(e => e.Channel + "/" + e.Name)));
+        Check.True(events.Any(e => e.Name == "approval.decided"), "an approval.decided hint was pushed to the requesting device");
+        await cts.CancelAsync();
+        try
+        {
+            await run;
+        }
+        catch (OperationCanceledException)
+        {
+            // expected
+        }
     }
 }

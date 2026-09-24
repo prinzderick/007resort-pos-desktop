@@ -14,6 +14,18 @@ public sealed class RealNodeFactAttribute : FactAttribute
     }
 }
 
+/// <summary>[Theory] that is skipped unless <c>R007_API_BASE_URL</c> points at a running node.</summary>
+public sealed class RealNodeTheoryAttribute : TheoryAttribute
+{
+    public RealNodeTheoryAttribute()
+    {
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("R007_API_BASE_URL")))
+        {
+            Skip = "Set R007_API_BASE_URL (e.g. http://127.0.0.1:8080/api/v1) to run against a real node.";
+        }
+    }
+}
+
 /// <summary>
 /// One xunit test per harness scenario. Same code as <c>tools/R007.Pos.Harness</c>; here a failing expectation fails the test.
 /// Run: <c>R007_API_BASE_URL=http://127.0.0.1:8080/api/v1 dotnet test tests/R007.Pos.IntegrationTests</c>
@@ -31,15 +43,16 @@ public sealed class RealNodeTests
         await Task.CompletedTask;
     }
 
-    [Theory]
+    [RealNodeTheory]
     [MemberData(nameof(ScenarioNames))]
     public async Task Scenario(string name)
     {
         var node = NodeContext.FromEnvironment();
         var scenario = Scenarios.All.Single(s => s.Name == name);
-        if (node is null || (scenario.NeedsNodeControl && node.NodeScript is null))
+        Assert.NotNull(node);
+        if (scenario.NeedsNodeControl && node.NodeScript is null)
         {
-            return; // skipped: no node configured (xunit 2 has no dynamic skip for theories)
+            return; // the outage scenario stops/starts the node: only when R007_NODE_SCRIPT is given
         }
 
         var result = await Scenarios.RunAsync(scenario, node);
