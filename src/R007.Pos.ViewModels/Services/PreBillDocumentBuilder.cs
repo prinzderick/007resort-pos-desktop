@@ -71,7 +71,10 @@ public static class PreBillDocumentBuilder
         }
 
         Left(rule);
-        Center(string.IsNullOrWhiteSpace(bill.Disclaimer) ? "Pay only through the card machine, the transfer link or the cashier." : bill.Disclaimer!);
+        foreach (var wrapped in Wrap(string.IsNullOrWhiteSpace(bill.Disclaimer) ? "Pay only through the card machine, the transfer link or the cashier." : bill.Disclaimer!, width))
+        {
+            Center(wrapped);
+        }
         string? qr = null;
         if (bill.PayLink is { Enabled: true } link)
         {
@@ -89,5 +92,27 @@ public static class PreBillDocumentBuilder
 
         Center(BottomBanner, bold: true);
         return new ReceiptDocument(lines, CutPaper: true, QrData: qr, OpenDrawer: false);
+    }
+
+    private static IEnumerable<string> Wrap(string text, int width)
+    {
+        var line = string.Empty;
+        foreach (var word in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (line.Length > 0 && line.Length + 1 + word.Length > width)
+            {
+                yield return line;
+                line = word;
+            }
+            else
+            {
+                line = line.Length == 0 ? word : line + " " + word;
+            }
+        }
+
+        if (line.Length > 0)
+        {
+            yield return line;
+        }
     }
 }

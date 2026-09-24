@@ -116,6 +116,37 @@ public sealed class RealtimeTests
     }
 
     [Fact]
+    public async Task ExtraChannels_AreAuthorised_AndFacilityPaymentEventsAreDelivered_EvenIfTheyAreRefusedLater()
+    {
+        using var env = new TestEnv();
+        await env.SignInAsync();
+        var deviceId = Guid.NewGuid();
+        var facility = Guid.NewGuid();
+        var incoming = new ConcurrentQueue<string?>();
+        var sent = new List<string>();
+        var received = new List<RealtimeEvent>();
+        var client = new RealtimeClient(env.Api, () => new FakeSocket(incoming, sent, []), (_, ct) => Task.Delay(Timeout.Infinite, ct));
+        client.EventReceived += received.Add;
+        var facilityChannel = $"private-facility.{facility:D}.orders";
+        incoming.Enqueue(Established("9.9"));
+        incoming.Enqueue("""{"event":"pusher_internal:subscription_succeeded","channel":"x","data":"{}"}""");
+        incoming.Enqueue(Event(facilityChannel, "payment.collected", Guid.NewGuid(), new { orderNumber = "RES-1", amount = "1500.0000", tender = "CARD_TERMINAL" }));
+        using var cts = new CancellationTokenSource();
+
+        var run = client.RunAsync(Info, deviceId, cts.Token, [facilityChannel]);
+        await WaitUntilAsync(() => received.Count >= 1 && sent.Count >= 2);
+        cts.Cancel();
+        await run;
+
+        Assert.Equal(2, sent.Count(m => m.Contains("pusher:subscribe", StringComparison.Ordinal)));
+        Assert.Contains(sent, m => m.Contains(facilityChannel, StringComparison.Ordinal));
+        var ev = Assert.Single(received);
+        Assert.Equal("payment.collected", ev.Name);
+        Assert.Equal(facilityChannel, ev.Channel);
+        Assert.Equal("RES-1", ev.Data.GetProperty("orderNumber").GetString());
+    }
+
+    [Fact]
     public async Task ConnectionDrop_Reconnects_ReauthorisesWithTheNewSocketId_AndAsksConsumersToReload()
     {
         using var env = new TestEnv();

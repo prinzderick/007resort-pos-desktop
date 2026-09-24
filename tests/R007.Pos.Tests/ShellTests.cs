@@ -47,7 +47,7 @@ public sealed class ShellTests
         await RegisterAndSignInAsync(shell);
 
         Assert.Equal(Stage.Main, shell.Stage);
-        Assert.Equal(["Sell", "Tables & tabs", "Cash session", "History", "Queue"], shell.Main!.Items.Select(i => i.Title));
+        Assert.Equal(["Sell", "Tables & tabs", "Collected by waiters", "Cash handover", "Cash session", "History", "Queue"], shell.Main!.Items.Select(i => i.Title));
         Assert.Equal("Amaka Cashier", shell.StaffName);
         Assert.NotNull(pos.Identity.Load()); // enrolment persisted
     }
