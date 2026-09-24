@@ -91,6 +91,24 @@ what the POS first assumed (all fixed), and what it still needs from the contrac
 | 11 | receipt has `balanceDue`, `tendered`, `duplicate`, `businessName`, `terminal` | ignored | printed (BALANCE DUE, Tendered, DUPLICATE) |
 | 12 | `system/info` reports `realtime.scheme` `http` | used it as the WebSocket scheme (throws) | mapped to `ws`/`wss` in `RealtimeClient.BuildUri` |
 
+## Waiter collection (cashier side)
+
+The POS is the cashier/supervisor side of `docs/WAITER_COLLECTION.md` (api repo); it never collects at a table and never marks anything paid on a waiter's behalf.
+
+- Endpoints used: `POST /orders/{id}/bill`, `POST /orders/{id}/bill/cancel` (200 or 202 approval), `GET /payments?status=PENDING_CONFIRMATION&facilityId=`, `POST /payments/{id}/confirm|reject`,
+  `GET /cash-handovers`, `POST /cash-handovers/{id}/receive|signoff`, `GET /staff/{id}/cash-in-hand`, `GET /cash-in-hand?facilityId=` (additive, see below).
+- Order/OrderSummary additive fields (`billState`, `billPrintCount`, `awaitingPayment`, `pendingCollected`, `collectable`, ...) drive the chips and the default payment amount (`collectable`, so a cashier only pays what a waiter has not collected).
+- Realtime: the client also subscribes to `private-facility.{facilityId}.orders` (authorised for POS devices) and reloads on `payment.collected|confirmed|rejected|expired|alert`, `bill.printed`, `cash-handover.received`. A refused facility subscription never takes the device channel down; polling continues.
+- Verified against the real node by the `collect-*` harness scenarios.
+
+**Deviations / gaps found (API side, PR prinzderick/007resort-api#18 into `integration/mvp`)**
+
+- `payment.collection` had only ids: no order number, table label, waiter name or terminal label, so the inbox needed a `GET /orders/{id}` + tables lookup per row. The PR adds `orderId`, `orderNumber`, `tableLabel`, `collectedByName`, `terminalLabel`; the POS uses them when present and falls back to its own lookups (waiter shows as `Waiter 1e21bd` until the node has the PR).
+- No list of waiters holding cash: the PR adds `GET /cash-in-hand?facilityId=` (+ `waiterName`); the POS falls back to per-waiter positions of those who declared a handover.
+- `matchedReference` on confirm is only recorded, not validated by the node; the POS does the match check (warns on a mismatch, second press confirms anyway, the typed reference is stored for the audit trail).
+- Pre-bill is per order. There is no tab-level bill; a tab's orders are billed one by one (open orders list on the Sell screen).
+- Not built (waiter side, out of scope): collecting, pay links / Paystack transfer creation, handover declaration. `AUTHORIZING` (auto-confirm) payments never appear in the inbox (`autoConfirm` payments cannot be confirmed by a person).
+
 ## Realtime (push)
 
 `docs` repo `api/realtime.md` defines Reverb (Pusher protocol 7) channels. The POS uses **REST polling** for correctness
