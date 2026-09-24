@@ -14,6 +14,7 @@ public static class Scenarios
         .. PaymentFlow.All,
         .. CashAndReceipt.All,
         .. ReceptionFlow.All,
+        .. CollectionFlow.All,
         .. OutageFlow.All,
     ];
 
