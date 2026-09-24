@@ -1,0 +1,23 @@
+{
+ "facilityId": "0192f6a0-0000-7000-8000-000000000101",
+ "capabilities": [
+  "SELL_FOOD",
+  "TABLE_SERVICE",
+  "OPEN_TABS"
+ ],
+ "operatingRules": {
+  "approvalThresholdAmount": "5000.0000",
+  "requireApprovalFor": [
+   "order.void",
+   "order.discount"
+  ],
+  "allowOpenTabs": true,
+  "requireCashSession": true,
+  "allowOfflineOrders": true,
+  "allowOfflinePayments": "CASH_ONLY",
+  "holdTtlSeconds": 600,
+  "vatEnabled": false,
+  "vatRatePercent": "7.5"
+ },
+ "version": 12
+}

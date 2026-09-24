@@ -1,0 +1,39 @@
+<UserControl x:Class="R007.Pos.App.Views.MainView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:R007.Pos.ViewModels.Screens;assembly=R007.Pos.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:MainViewModel}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ListBox x:Name="Tabs" Grid.Row="0" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected, Mode=OneWay}"
+                 SelectionChanged="OnTabSelected" Margin="6,6,6,0" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:NavItem}">
+                    <StackPanel Orientation="Horizontal" Margin="14,10">
+                        <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="SemiBold" />
+                        <Border Background="{StaticResource DangerBrush}" CornerRadius="10" Padding="7,1" Margin="8,0,0,0"
+                                Visibility="{Binding Badge, Converter={StaticResource NullToVis}}">
+                            <TextBlock Text="{Binding Badge}" FontSize="13" FontWeight="Bold" />
+                        </Border>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <TextBlock Grid.Row="1" Style="{StaticResource ErrorText}" Text="{Binding Error}" Margin="14,4"
+                   Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+
+        <ContentControl Grid.Row="2" Content="{Binding Current}" IsTabStop="False" />
+    </Grid>
+</UserControl>

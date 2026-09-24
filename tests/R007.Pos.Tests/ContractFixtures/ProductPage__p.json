@@ -1,0 +1,26 @@
+{
+ "items": [
+  {
+   "id": "0192f6a0-0000-7000-8000-000000000501",
+   "sku": "FD-JOL-CH",
+   "name": "Jollof Rice & Chicken",
+   "categoryId": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a90",
+   "kind": "FOOD",
+   "price": "4500.0000",
+   "currency": "NGN",
+   "taxInclusive": true,
+   "taxRatePercent": "0",
+   "taxAmount": "0.0000",
+   "prepRoute": {
+    "stationId": "0192f6a0-0000-7000-8000-000000000901",
+    "stationName": "Kitchen Pass",
+    "kind": "KITCHEN"
+   },
+   "trackStock": true,
+   "active": true,
+   "imageUrl": null,
+   "rowVersion": 3
+  }
+ ],
+ "nextCursor": null
+}

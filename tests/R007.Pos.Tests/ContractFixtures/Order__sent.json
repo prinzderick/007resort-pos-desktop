@@ -1,0 +1,43 @@
+{
+ "id": "0192f6a0-0000-7000-8000-000000000601",
+ "number": "RST1-000123",
+ "facilityId": "0192f6a0-0000-7000-8000-000000000101",
+ "tableId": "0192f6a0-0000-7000-8000-000000000201",
+ "tabId": null,
+ "customerName": null,
+ "channel": "DINE_IN",
+ "status": "SENT",
+ "lines": [
+  {
+   "id": "0192f6a0-0000-7000-8000-000000000701",
+   "productId": "0192f6a0-0000-7000-8000-000000000501",
+   "name": "Jollof Rice & Chicken",
+   "quantity": 2,
+   "unitPrice": "4500.0000",
+   "taxAmount": "0.0000",
+   "lineTotal": "9000.0000",
+   "notes": "no pepper",
+   "status": "ROUTED",
+   "prepRoute": {
+    "stationId": "0192f6a0-0000-7000-8000-000000000901",
+    "stationName": "Kitchen Pass",
+    "kind": "KITCHEN"
+   },
+   "adjustments": []
+  }
+ ],
+ "subtotal": "9000.0000",
+ "discountTotal": "0.0000",
+ "taxTotal": "0.0000",
+ "total": "9000.0000",
+ "amountPaid": "0.0000",
+ "balanceDue": "9000.0000",
+ "currency": "NGN",
+ "createdByStaffId": "0192f6a0-0000-7000-8000-000000000401",
+ "deviceId": "0192f6a0-0000-7000-8000-000000000301",
+ "pendingApprovalId": null,
+ "rowVersion": 3,
+ "createdAt": "2026-09-23T10:15:30.123456Z",
+ "updatedAt": "2026-09-23T10:15:30.123456Z",
+ "sentAt": "2026-09-23T10:15:30.123456Z"
+}

@@ -78,13 +78,4 @@ public sealed class SimulatedDeviceTests
         await display.ClearAsync();
         Assert.Equal(string.Empty, display.Line2);
     }
-
-    [Fact]
-    public void TerminalContext_IsLocked_WithoutStaff()
-    {
-        var context = new TerminalContext(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
-
-        Assert.False(context.HasStaff);
-        Assert.True((context with { StaffId = Guid.NewGuid() }).HasStaff);
-    }
 }

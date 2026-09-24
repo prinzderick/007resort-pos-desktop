@@ -1,0 +1,10 @@
+{
+ "resourceId": "0192f6a0-7b1c-7d2e-9a3b-5c4d6e7f8a90",
+ "start": "2026-09-24T09:00:00Z",
+ "end": "2026-09-24T10:00:00Z",
+ "quantity": 1,
+ "customer": {
+  "name": "Chinedu Eze",
+  "phone": "+2348012345678"
+ }
+}

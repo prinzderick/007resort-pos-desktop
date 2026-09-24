@@ -1,0 +1,8 @@
+{
+ "credentialType": "PIN",
+ "identifier": "S-0007",
+ "secret": "9911",
+ "permission": "order.void.approve",
+ "entityType": "order",
+ "entityId": "0192f6a0-0000-7000-8000-000000000601"
+}

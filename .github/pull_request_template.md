@@ -19,4 +19,6 @@
 - [ ] Money is `decimal` and displayed from API values; timestamps are UTC
 - [ ] Sensitive actions (drawer open, voids, refunds, overrides) are authorized and audited by the API
 - [ ] No secrets, credentials, device keys or `.env` files committed; nothing sensitive logged (PINs, NFC UIDs, tokens)
+- [ ] Contract types changed? `tests/R007.Pos.Tests/ContractFixtures` refreshed from `api/openapi/v1.yaml` and `ContractConformanceTests` pass
+- [ ] XAML changed? the view has `d:DataContext` so `XamlBindingTests` can check its bindings; anything that can only be seen on Windows is added to `docs/windows-hardware-verification.md`
 - [ ] Docs updated (README / CONTRIBUTING / docs/)

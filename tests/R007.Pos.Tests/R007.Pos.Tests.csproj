@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
@@ -18,8 +20,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Example payloads and schema property lists copied from the API contract (api/openapi/v1.yaml). -->
+    <None Update="ContractFixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The real shipped appsettings.json, to prove it binds as intended. -->
+    <None Include="..\..\src\R007.Pos.App\appsettings.json" Link="appsettings.shipped.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\R007.Pos.Core\R007.Pos.Core.csproj" />
     <ProjectReference Include="..\..\src\R007.Pos.Devices\R007.Pos.Devices.csproj" />
+    <ProjectReference Include="..\..\src\R007.Pos.ViewModels\R007.Pos.ViewModels.csproj" />
   </ItemGroup>
 
 </Project>

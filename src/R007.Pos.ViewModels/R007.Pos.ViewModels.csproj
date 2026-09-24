@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Platform-neutral MVVM layer: no WPF types, so it builds and is unit-tested on any OS. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>R007.Pos.ViewModels</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\R007.Pos.Core\R007.Pos.Core.csproj" />
+    <ProjectReference Include="..\R007.Pos.Devices\R007.Pos.Devices.csproj" />
+  </ItemGroup>
+
+</Project>

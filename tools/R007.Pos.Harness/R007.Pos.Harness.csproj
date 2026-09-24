@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Real-node harness: drives the POS's real Core / API-client / view-model / receipt stack against a running
+    007 Resort & Spa node (Laravel API). Pure .NET: runs on macOS/Linux/Windows. See docs/REAL_API_TEST_REPORT.md.
+    The scenarios live here so the console harness and the xunit category (tests/R007.Pos.IntegrationTests) share them.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>R007.Pos.Harness</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\R007.Pos.Core\R007.Pos.Core.csproj" />
+    <ProjectReference Include="..\..\src\R007.Pos.Devices\R007.Pos.Devices.csproj" />
+    <ProjectReference Include="..\..\src\R007.Pos.ViewModels\R007.Pos.ViewModels.csproj" />
+  </ItemGroup>
+
+</Project>
