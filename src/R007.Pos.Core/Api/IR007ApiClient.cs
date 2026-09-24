@@ -104,6 +104,31 @@ public interface IR007ApiClient
 
     Task<Receipt> GetOrderReceiptAsync(Guid orderId, CancellationToken cancellationToken = default);
 
+    // Bills & waiter collections (cashier / supervisor side) --------------------------------------------------
+    /// <summary>Prints (or reprints) the pre-bill and freezes the order. Needs <c>bill.print</c>; a reprint after a cancelled bill needs a supervisor (step-up token).</summary>
+    Task<BillResult> PrintBillAsync(Guid orderId, BillRequest request, string idempotencyKey, string? stepUpToken = null, CancellationToken cancellationToken = default);
+
+    /// <summary>Reopens a printed bill. 200 = reopened now (approver / step-up token), 202 = held for a supervisor.</summary>
+    Task<CancelBillResult> CancelBillAsync(Guid orderId, CancelBillRequest request, string idempotencyKey, string? stepUpToken = null, CancellationToken cancellationToken = default);
+
+    /// <summary>All payments of one status at a facility (pages followed), newest first. The cashier inbox is <c>PENDING_CONFIRMATION</c>.</summary>
+    Task<IReadOnlyList<Payment>> ListPaymentsByStatusAsync(Guid facilityId, string status, CancellationToken cancellationToken = default);
+
+    Task<ConfirmCollectionResult> ConfirmCollectionAsync(Guid paymentId, ConfirmCollectionRequest request, string idempotencyKey, CancellationToken cancellationToken = default);
+
+    Task<Payment> RejectCollectionAsync(Guid paymentId, RejectCollectionRequest request, string idempotencyKey, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<CashHandover>> ListCashHandoversAsync(Guid facilityId, string? status = null, CancellationToken cancellationToken = default);
+
+    Task<CashHandover> ReceiveCashHandoverAsync(Guid handoverId, ReceiveHandoverRequest request, string idempotencyKey, CancellationToken cancellationToken = default);
+
+    Task<CashHandover> SignoffCashHandoverAsync(Guid handoverId, SignoffHandoverRequest request, string idempotencyKey, CancellationToken cancellationToken = default);
+
+    Task<CashInHand> GetCashInHandAsync(Guid staffId, CancellationToken cancellationToken = default);
+
+    /// <summary>Every waiter holding cash at the facility (<c>GET /cash-in-hand?facilityId=</c>, an additive endpoint). Null when the node does not have it (404/405).</summary>
+    Task<IReadOnlyList<CashInHand>?> ListCashInHandAsync(Guid facilityId, CancellationToken cancellationToken = default);
+
     // Memberships (customer lookup) -------------------------------------------------------------------------
     Task<IReadOnlyList<Membership>> SearchMembershipsAsync(string query, CancellationToken cancellationToken = default);
 

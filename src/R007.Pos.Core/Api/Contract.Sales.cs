@@ -89,11 +89,21 @@ public sealed record Order(
     string Currency,
     Guid? PendingApprovalId,
     int RowVersion,
-    DateTimeOffset CreatedAt)
+    DateTimeOffset CreatedAt,
+    string? BillState = null,
+    DateTimeOffset? BillPrintedAt = null,
+    int? BillPrintCount = null,
+    int? BillReopenCount = null,
+    bool? AwaitingPayment = null,
+    decimal? PendingCollected = null,
+    decimal? Collectable = null)
 {
     public bool IsDraft => Status == OrderStatuses.Draft;
 
     public bool IsClosed => Status is OrderStatuses.Settled or OrderStatuses.Voided;
+
+    /// <summary>The pre-bill was printed and the order is frozen (additive fields; an older node never sends them).</summary>
+    public bool IsBilled => BillState == BillStates.BillPrinted;
 }
 
 public sealed record OrderSummary(
@@ -107,7 +117,17 @@ public sealed record OrderSummary(
     decimal Total,
     decimal BalanceDue,
     int? LineCount,
-    DateTimeOffset? CreatedAt);
+    DateTimeOffset? CreatedAt,
+    string? BillState = null,
+    DateTimeOffset? BillPrintedAt = null,
+    int? BillPrintCount = null,
+    int? BillReopenCount = null,
+    bool? AwaitingPayment = null,
+    decimal? PendingCollected = null,
+    decimal? Collectable = null)
+{
+    public bool IsBilled => BillState == BillStates.BillPrinted;
+}
 
 public static class OrderChannels
 {

@@ -23,6 +23,11 @@ public static class PaymentStatuses
     public const string PartiallyRefunded = "PARTIALLY_REFUNDED";
     public const string Refunded = "REFUNDED";
     public const string Reversed = "REVERSED";
+
+    /// <summary>A waiter collected it by hand (card machine slip, cash, transfer): not money in the till until a cashier confirms.</summary>
+    public const string PendingConfirmation = "PENDING_CONFIRMATION";
+    public const string Rejected = "REJECTED";
+    public const string Expired = "EXPIRED";
 }
 
 public sealed record AllocationInput(Guid OrderId, decimal Amount);
@@ -69,9 +74,12 @@ public sealed record Payment(
     Guid? ReceiptId,
     Guid? TakenByStaffId,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? CapturedAt)
+    DateTimeOffset? CapturedAt,
+    CollectionInfo? Collection = null)
 {
     public bool IsCaptured => Status == PaymentStatuses.Captured;
+
+    public bool IsPendingConfirmation => Status == PaymentStatuses.PendingConfirmation;
 
     public bool IsAwaitingProvider => Status is PaymentStatuses.Authorizing or PaymentStatuses.Initiated;
 }

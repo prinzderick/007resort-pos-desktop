@@ -36,8 +36,19 @@ public sealed record TerminalFeatures(
     string OfflinePayments,
     bool RequiresNfcAndPin,
     bool CanServe = false,
-    string? PaymentTiming = null)
+    string? PaymentTiming = null,
+    bool CanPrintBill = false,
+    bool CanReopenBill = false,
+    bool CanConfirmCollections = false,
+    bool CanViewHandovers = false,
+    bool CanReceiveHandovers = false,
+    bool CanSignoffHandovers = false)
 {
+    /// <summary>The cashier/supervisor desk for waiter-collected money: the inbox and the cash handover desk.</summary>
+    public bool ShowCollections => CanConfirmCollections;
+
+    public bool ShowHandoverDesk => CanReceiveHandovers || CanSignoffHandovers || CanViewHandovers;
+
     /// <summary>The facility takes payment before service (Reception): a DRAFT order may be paid.</summary>
     public bool PayFirst => string.Equals(PaymentTiming, PaymentTimings.PayFirst, StringComparison.Ordinal);
 
@@ -46,7 +57,7 @@ public sealed record TerminalFeatures(
 
     public static TerminalFeatures None { get; } = From(null, null, false);
 
-    public bool AnyPosScreen => CanSell || ShowTables || CanBook || CanManageCashSession || CanViewHistory || CanDecideApprovals;
+    public bool AnyPosScreen => CanSell || ShowTables || CanBook || CanManageCashSession || CanViewHistory || CanDecideApprovals || ShowCollections || ShowHandoverDesk;
 
     public static TerminalFeatures From(FacilityCapabilities? caps, Staff? staff, bool requireNfcAndPin)
     {
@@ -86,6 +97,12 @@ public sealed record TerminalFeatures(
             OfflinePayments: rules?.AllowOfflinePayments ?? OfflinePaymentPolicy.None,
             RequiresNfcAndPin: requireNfcAndPin,
             CanServe: Perm(Permissions.OrderServe),
-            PaymentTiming: rules?.PaymentTiming);
+            PaymentTiming: rules?.PaymentTiming,
+            CanPrintBill: pos && Perm(Permissions.BillPrint),
+            CanReopenBill: pos && (Perm(Permissions.BillCancelExecute) || Perm(Permissions.BillCancelApprove)),
+            CanConfirmCollections: pos && Perm(Permissions.PaymentConfirm),
+            CanViewHandovers: pos && Perm(Permissions.CashHandoverView),
+            CanReceiveHandovers: pos && Perm(Permissions.CashHandoverReceive),
+            CanSignoffHandovers: pos && Perm(Permissions.CashHandoverSignoff));
     }
 }

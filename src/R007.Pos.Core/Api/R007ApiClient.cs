@@ -215,6 +215,55 @@ public sealed class R007ApiClient(HttpClient httpClient) : IR007ApiClient
     public Task<Receipt> GetOrderReceiptAsync(Guid orderId, CancellationToken cancellationToken = default) =>
         GetAsync($"api/v1/orders/{Id(orderId)}/receipt", Ctx.Receipt, cancellationToken);
 
+    // Bills & waiter collections ----------------------------------------------------------------------------
+    public Task<BillResult> PrintBillAsync(Guid orderId, BillRequest request, string idempotencyKey, string? stepUpToken = null, CancellationToken cancellationToken = default) =>
+        SendAsync(HttpMethod.Post, $"api/v1/orders/{Id(orderId)}/bill", request, Ctx.BillRequest, Ctx.BillResult, idempotencyKey, stepUpToken, cancellationToken: cancellationToken);
+
+    public async Task<CancelBillResult> CancelBillAsync(Guid orderId, CancelBillRequest request, string idempotencyKey, string? stepUpToken = null, CancellationToken cancellationToken = default)
+    {
+        using var content = JsonContent(request, Ctx.CancelBillRequest);
+        using var response = await SendRawAsync(HttpMethod.Post, $"api/v1/orders/{Id(orderId)}/bill/cancel", content, idempotencyKey, stepUpToken, null, cancellationToken).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.Accepted)
+        {
+            return new CancelBillResult(null, await ReadAsync(response, Ctx.BillCancelPending, cancellationToken).ConfigureAwait(false));
+        }
+
+        return new CancelBillResult(await ReadAsync(response, Ctx.Order, cancellationToken).ConfigureAwait(false), null);
+    }
+
+    public Task<IReadOnlyList<Payment>> ListPaymentsByStatusAsync(Guid facilityId, string status, CancellationToken cancellationToken = default) =>
+        GetAllAsync($"api/v1/payments?status={Q(status)}&facilityId={Id(facilityId)}&limit=100", Ctx.PagePayment, cancellationToken);
+
+    public Task<ConfirmCollectionResult> ConfirmCollectionAsync(Guid paymentId, ConfirmCollectionRequest request, string idempotencyKey, CancellationToken cancellationToken = default) =>
+        SendAsync(HttpMethod.Post, $"api/v1/payments/{Id(paymentId)}/confirm", request, Ctx.ConfirmCollectionRequest, Ctx.ConfirmCollectionResult, idempotencyKey, cancellationToken: cancellationToken);
+
+    public Task<Payment> RejectCollectionAsync(Guid paymentId, RejectCollectionRequest request, string idempotencyKey, CancellationToken cancellationToken = default) =>
+        SendAsync(HttpMethod.Post, $"api/v1/payments/{Id(paymentId)}/reject", request, Ctx.RejectCollectionRequest, Ctx.Payment, idempotencyKey, cancellationToken: cancellationToken);
+
+    public Task<IReadOnlyList<CashHandover>> ListCashHandoversAsync(Guid facilityId, string? status = null, CancellationToken cancellationToken = default) =>
+        GetAllAsync($"api/v1/cash-handovers?facilityId={Id(facilityId)}&limit=100{(string.IsNullOrEmpty(status) ? string.Empty : "&status=" + Q(status))}", Ctx.PageCashHandover, cancellationToken);
+
+    public Task<CashHandover> ReceiveCashHandoverAsync(Guid handoverId, ReceiveHandoverRequest request, string idempotencyKey, CancellationToken cancellationToken = default) =>
+        SendAsync(HttpMethod.Post, $"api/v1/cash-handovers/{Id(handoverId)}/receive", request, Ctx.ReceiveHandoverRequest, Ctx.CashHandover, idempotencyKey, cancellationToken: cancellationToken);
+
+    public Task<CashHandover> SignoffCashHandoverAsync(Guid handoverId, SignoffHandoverRequest request, string idempotencyKey, CancellationToken cancellationToken = default) =>
+        SendAsync(HttpMethod.Post, $"api/v1/cash-handovers/{Id(handoverId)}/signoff", request, Ctx.SignoffHandoverRequest, Ctx.CashHandover, idempotencyKey, cancellationToken: cancellationToken);
+
+    public Task<CashInHand> GetCashInHandAsync(Guid staffId, CancellationToken cancellationToken = default) =>
+        GetAsync($"api/v1/staff/{Id(staffId)}/cash-in-hand", Ctx.CashInHand, cancellationToken);
+
+    public async Task<IReadOnlyList<CashInHand>?> ListCashInHandAsync(Guid facilityId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await GetAllAsync($"api/v1/cash-in-hand?facilityId={Id(facilityId)}&limit=100", Ctx.PageCashInHand, cancellationToken).ConfigureAwait(false);
+        }
+        catch (ApiException ex) when (ex.Status is HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed)
+        {
+            return null; // an older node: the desk falls back to the handovers list
+        }
+    }
+
     // Memberships -------------------------------------------------------------------------------------------
     public async Task<IReadOnlyList<Membership>> SearchMembershipsAsync(string query, CancellationToken cancellationToken = default) =>
         (await GetAsync($"api/v1/memberships?q={Q(query)}&limit=25", Ctx.PageMembership, cancellationToken).ConfigureAwait(false)).Items;

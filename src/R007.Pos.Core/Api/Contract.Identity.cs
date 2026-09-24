@@ -94,7 +94,10 @@ public sealed record OperatingRules(
     int? HoldTtlSeconds,
     bool? VatEnabled,
     string? VatRatePercent,
-    string? PaymentTiming = null)
+    string? PaymentTiming = null,
+    bool? WaiterCollectionEnabled = null,
+    bool? WaiterCashHolding = null,
+    int? PendingCollectionExpiryMinutes = null)
 {
     /// <summary>Reception-style counter: the order is paid BEFORE service (a DRAFT order may be settled).</summary>
     public bool IsPayFirst => string.Equals(PaymentTiming, PaymentTimings.PayFirst, StringComparison.Ordinal);
@@ -177,6 +180,15 @@ public static class Permissions
     public const string TicketIssue = "ticket.issue";
     public const string MembershipView = "membership.view";
     public const string ReportView = "report.view";
+
+    // Waiter collection (bill, confirm, cash handover)
+    public const string BillPrint = "bill.print";
+    public const string BillCancelExecute = "bill.cancel.execute";
+    public const string BillCancelApprove = "bill.cancel.approve";
+    public const string PaymentConfirm = "payment.confirm";
+    public const string CashHandoverView = "cash_handover.view";
+    public const string CashHandoverReceive = "cash_handover.receive";
+    public const string CashHandoverSignoff = "cash_handover.signoff";
 
     /// <summary>Any of these lets a staff member decide approvals on this terminal.</summary>
     public static readonly string[] ApprovalDecisions =
