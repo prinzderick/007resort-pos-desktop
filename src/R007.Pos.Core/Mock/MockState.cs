@@ -104,6 +104,14 @@ internal sealed class MOrder
     public Guid? BookingId { get; set; }
 
     public Guid CreatedBy { get; init; }
+
+    public string BillState { get; set; } = BillStates.Open;
+
+    public DateTimeOffset? BillPrintedAt { get; set; }
+
+    public int BillPrintCount { get; set; }
+
+    public int BillReopenCount { get; set; }
 }
 
 internal sealed class MTab
@@ -204,7 +212,11 @@ internal sealed class MPayment
 
     public required DateTimeOffset CreatedAt { get; init; }
 
-    public Payment ToDto() => new(Id, GroupId, FacilityId, Tender, Provider, ProviderReference, Reference, Status, Amount, Tendered, Change, Refunded, "NGN", Allocations, CashSessionId, ReceiptId, TakenBy, CreatedAt, Status == PaymentStatuses.Captured ? CreatedAt : null);
+    public DateTimeOffset? CapturedAt { get; set; }
+
+    public MCollection? Collection { get; set; }
+
+    public Payment ToDto() => new(Id, GroupId, FacilityId, Tender, Provider, ProviderReference, Reference, Status, Amount, Tendered, Change, Refunded, "NGN", Allocations, CashSessionId, ReceiptId == Guid.Empty ? null : ReceiptId, TakenBy, CreatedAt, CapturedAt ?? (Status == PaymentStatuses.Captured && Collection is null ? CreatedAt : null), Collection?.ToDto(Allocations.FirstOrDefault()?.OrderId));
 }
 
 internal sealed class MCashSession
@@ -258,4 +270,81 @@ internal sealed class MIdempotent
     public required int Status { get; init; }
 
     public required byte[] Body { get; init; }
+}
+
+internal sealed class MCollection
+{
+    public required string Tender { get; init; }
+
+    public required Guid CollectedBy { get; init; }
+
+    public required string CollectedByName { get; init; }
+
+    public string? ApprovalCode { get; init; }
+
+    public string? SlipReference { get; init; }
+
+    public string? Last4 { get; init; }
+
+    public string? BankReference { get; init; }
+
+    public required DateTimeOffset ExpiresAt { get; init; }
+
+    public string? Decision { get; set; }
+
+    public Guid? DecidedBy { get; set; }
+
+    public DateTimeOffset? DecidedAt { get; set; }
+
+    public string? DecisionReason { get; set; }
+
+    public string? MatchedReference { get; set; }
+
+    public string? OrderNumber { get; init; }
+
+    public string? TableLabel { get; init; }
+
+    public CollectionInfo ToDto(Guid? orderId) => new(
+        Tender, "MANUAL", CollectedBy, null, null, ApprovalCode, SlipReference, Last4, BankReference, null, null, ExpiresAt, false,
+        Decision, Decision is null ? null : "MANUAL", DecidedBy, DecidedAt, DecisionReason, MatchedReference, orderId, OrderNumber, TableLabel, CollectedByName, null);
+}
+
+internal sealed class MHandover
+{
+    public required Guid Id { get; init; }
+
+    public required Guid FacilityId { get; init; }
+
+    public required Guid Waiter { get; init; }
+
+    public required string WaiterName { get; init; }
+
+    public string Status { get; set; } = HandoverStatuses.PendingReceipt;
+
+    public required decimal ExpectedInHand { get; init; }
+
+    public required decimal Declared { get; init; }
+
+    public decimal? Counted { get; set; }
+
+    public decimal? Variance { get; set; }
+
+    public string? Note { get; init; }
+
+    public Guid? ReceivedBy { get; set; }
+
+    public DateTimeOffset? ReceivedAt { get; set; }
+
+    public Guid? SignedOffBy { get; set; }
+
+    public DateTimeOffset? SignedOffAt { get; set; }
+
+    public required DateTimeOffset CreatedAt { get; init; }
+
+    public bool RequiresSignoff { get; set; }
+
+    public CashHandover ToDto() => new(
+        Id, FacilityId, Waiter, Status, ExpectedInHand, Declared, Counted, Variance,
+        Variance is null ? null : Variance == 0m ? "EXACT" : Variance > 0m ? "OVER" : "SHORT",
+        RequiresSignoff, Note, ReceivedBy, ReceivedAt, SignedOffBy, SignedOffAt, CreatedAt, WaiterName);
 }

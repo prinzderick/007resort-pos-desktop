@@ -46,6 +46,13 @@ public sealed class PrintService(IR007ApiClient api, IReceiptPrinter printer, in
         }
     }
 
+    /// <summary>Prints the pre-bill. Printer trouble is reported, never thrown: the bill is already recorded (and counted) on the node.</summary>
+    public async Task<PrintResult> PrintBillAsync(PreBill bill, CancellationToken ct = default)
+    {
+        var result = await PrintAsync(PreBillDocumentBuilder.Build(bill, charactersPerLine), ct).ConfigureAwait(false);
+        return result.Printed ? new PrintResult(true, "Bill printed.") : result with { Message = result.Message.Replace("Reprint from History once fixed.", "Print the bill again once the printer is fixed.", StringComparison.Ordinal) };
+    }
+
     public async Task<PrintResult> PrintAsync(ReceiptDocument document, CancellationToken ct = default)
     {
         try

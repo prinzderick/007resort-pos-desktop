@@ -29,14 +29,18 @@ public sealed partial class MockApiHandler
         return new Order(
             o.Id, o.Number, o.FacilityId, o.TableId, o.TabId, o.CustomerName, o.Channel, o.Status, lines,
             subtotal, discount, tax, total, o.AmountPaid, o.Status == OrderStatuses.Voided ? 0m : total - o.AmountPaid,
-            "NGN", o.PendingApprovalId, o.RowVersion, o.CreatedAt);
+            "NGN", o.PendingApprovalId, o.RowVersion, o.CreatedAt,
+            o.BillState, o.BillPrintedAt, o.BillPrintCount, o.BillReopenCount,
+            o.BillState == BillStates.BillPrinted && o.Status != OrderStatuses.Voided && total - o.AmountPaid > 0m,
+            PendingOf(o), Math.Max(0m, total - o.AmountPaid - PendingOf(o)));
     }
 
     private OrderSummary Summary(MOrder o)
     {
         var dto = ToDto(o);
         var label = o.TableId is { } t && _tables.TryGetValue(t, out var table) ? table.Label : null;
-        return new OrderSummary(o.Id, o.Number, o.FacilityId, o.TableId, label, o.TabId, o.Status, dto.Total, dto.BalanceDue, dto.Lines.Count, o.CreatedAt);
+        return new OrderSummary(o.Id, o.Number, o.FacilityId, o.TableId, label, o.TabId, o.Status, dto.Total, dto.BalanceDue, dto.Lines.Count, o.CreatedAt,
+            o.BillState, o.BillPrintedAt, o.BillPrintCount, o.BillReopenCount, dto.AwaitingPayment, dto.PendingCollected, dto.Collectable);
     }
 
     private Tab ToDto(MTab t)
@@ -140,6 +144,7 @@ public sealed partial class MockApiHandler
         {
             Need(caller, Permissions.OrderLineAdd);
             var order = GetOrder(a[0]);
+            RequireNotBilled(order);
             var input = Read(body, Ctx.OrderLineInput);
             if (order.Lines.Any(l => l.Id == input.Id))
             {
@@ -157,6 +162,7 @@ public sealed partial class MockApiHandler
         {
             Need(caller, Permissions.OrderLineRemoveUnsent);
             var order = GetOrder(a[0]);
+            RequireNotBilled(order);
             CheckIfMatch(request, order.RowVersion);
             RequireDraft(order);
             var line = order.Lines.FirstOrDefault(l => l.Id == G(a[1])) ?? throw new MockProblem(404, "not_found", "Line not found");
@@ -169,6 +175,7 @@ public sealed partial class MockApiHandler
         {
             Need(caller, Permissions.OrderSend);
             var order = GetOrder(a[0]);
+            RequireNotBilled(order);
             if (order.Status == OrderStatuses.Sent)
             {
                 return OrderResponse(200, order); // already sent: safe replay
@@ -403,6 +410,7 @@ public sealed partial class MockApiHandler
 
     private HttpResponseMessage VoidOrder(HttpRequestMessage request, MOrder order, VoidRequest req, Caller caller)
     {
+        RequireNotBilled(order);
         CheckIfMatch(request, order.RowVersion);
         if (order.Status is OrderStatuses.Voided or OrderStatuses.Settled or OrderStatuses.PendingApproval)
         {
@@ -517,6 +525,7 @@ public sealed partial class MockApiHandler
         };
 
         Need(caller, executePerm);
+        RequireNotBilled(order);
         CheckIfMatch(request, order.RowVersion);
         if (order.IsClosedForTable() || order.Status == OrderStatuses.PendingApproval)
         {

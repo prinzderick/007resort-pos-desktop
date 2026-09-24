@@ -31,7 +31,13 @@ public sealed record WorkingOrder(
     decimal EstimatedTotal,
     string Currency,
     bool IsPendingConfirmation,
-    Guid? PendingApprovalId)
+    Guid? PendingApprovalId,
+    string? BillState = null,
+    int? BillPrintCount = null,
+    int? BillReopenCount = null,
+    bool? AwaitingPayment = null,
+    decimal? PendingCollected = null,
+    decimal? Collectable = null)
 {
     public bool IsDraft => Status == OrderStatuses.Draft;
 
@@ -39,8 +45,17 @@ public sealed record WorkingOrder(
 
     public bool HasLines => Lines.Count > 0;
 
-    /// <summary>Default amount to collect: the API's balance, or (emergency only) the labelled estimate.</summary>
-    public decimal AmountDue => BalanceDue ?? EstimatedTotal;
+    /// <summary>The pre-bill was printed: the order is frozen (no lines, send, discount or void) until the bill is reopened.</summary>
+    public bool IsBilled => BillState == BillStates.BillPrinted;
+
+    /// <summary>A waiter already collected money on this bill that no cashier has confirmed yet.</summary>
+    public bool HasPendingCollection => PendingCollected is > 0m;
+
+    /// <summary>Nothing is left for the cashier to take: what remains is already collected by a waiter, awaiting confirmation.</summary>
+    public bool FullyCollectedByWaiter => HasPendingCollection && Collectable is <= 0m;
+
+    /// <summary>Default amount to collect: what the API says is still collectable (balance minus waiter-collected), else the balance, else (emergency only) the labelled estimate.</summary>
+    public decimal AmountDue => Collectable ?? BalanceDue ?? EstimatedTotal;
 
     public static WorkingOrder FromServer(Order o) => new(
         o.Id,
@@ -60,5 +75,11 @@ public sealed record WorkingOrder(
         o.Total,
         o.Currency,
         false,
-        o.PendingApprovalId);
+        o.PendingApprovalId,
+        o.BillState,
+        o.BillPrintCount,
+        o.BillReopenCount,
+        o.AwaitingPayment,
+        o.PendingCollected,
+        o.Collectable);
 }

@@ -92,6 +92,16 @@ RAW-capable driver; the app sends RAW bytes, so a graphics driver must not re-re
       `freshness.stale` warning appears when the node is degraded.
 - [ ] Time zone: receipts print Africa/Lagos time (UTC+1).
 
+## 7b. Waiter collection desk (WPF rendering not runnable off Windows; logic is covered by view-model tests + the `collect-*` harness scenarios)
+
+- [ ] 'Collected by waiters' tab: rows render, age text turns amber at half the window, red when near expiry (`AgeText` DataTriggers), Confirm/Reject buttons are 48 px touch targets, list updates without focus loss when a `payment.collected` push arrives.
+- [ ] Confirm dialog: the reference box, mismatch warning (amber) then second press; receipt prints on the thermal printer and the cash drawer opens for a CASH confirmation.
+- [ ] Reject dialog: reason box, red warning banner, supervisor alert banner appears on a supervisor POS on `payment.alert`.
+- [ ] Pre-bill on the real printer: the two NOT A RECEIPT banners, 48-column layout, pay-link QR (when `bill_pay_link_enabled`), reprint counter; no drawer kick.
+- [ ] Status-bar badge ('N collected by waiters - confirm') and the tab badge; the badge disappears when the list empties.
+- [ ] Cash handover desk: Count and receive dialog with the live variance preview; supervisor 'Sign off variance' button only visible on PENDING_SIGNOFF rows.
+- [ ] Table tiles, tab rows, open-orders list and cart show the state chips; Reopen bill and Print bill buttons enable/disable with the order state.
+
 ## 8. Soak
 
 - [ ] A full trading day on one till in mock mode with the window left open (memory growth, no unhandled exceptions in

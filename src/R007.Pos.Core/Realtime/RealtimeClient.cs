@@ -90,14 +90,14 @@ public sealed class RealtimeClient(IR007ApiClient api, Func<IRealtimeSocket> soc
         return new Uri($"{scheme}://{info.Host}:{info.Port}/app/{Uri.EscapeDataString(info.AppKey)}?protocol=7&client=r007-pos&version=0.1&flash=false");
     }
 
-    public async Task RunAsync(RealtimeInfo info, Guid deviceId, CancellationToken ct)
+    public async Task RunAsync(RealtimeInfo info, Guid deviceId, CancellationToken ct, IReadOnlyList<string>? extraChannels = null)
     {
         var attempt = 0;
         while (!ct.IsCancellationRequested)
         {
             try
             {
-                await RunOnceAsync(info, deviceId, ct).ConfigureAwait(false);
+                await RunOnceAsync(info, deviceId, extraChannels ?? [], ct).ConfigureAwait(false);
                 attempt = 0; // a clean close: reconnect promptly
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -122,7 +122,7 @@ public sealed class RealtimeClient(IR007ApiClient api, Func<IRealtimeSocket> soc
         }
     }
 
-    private async Task RunOnceAsync(RealtimeInfo info, Guid deviceId, CancellationToken ct)
+    private async Task RunOnceAsync(RealtimeInfo info, Guid deviceId, IReadOnlyList<string> extraChannels, CancellationToken ct)
     {
         await using var socket = socketFactory();
         await socket.ConnectAsync(BuildUri(info), ct).ConfigureAwait(false);
@@ -140,6 +140,20 @@ public sealed class RealtimeClient(IR007ApiClient api, Func<IRealtimeSocket> soc
                     var socketId = ParseData(root).GetProperty("socket_id").GetString()!;
                     var auth = await api.AuthorizeChannelAsync(socketId, channel, ct).ConfigureAwait(false);
                     await socket.SendAsync(JsonSerializer.Serialize(new { @event = "pusher:subscribe", data = new { auth, channel } }), ct).ConfigureAwait(false);
+                    foreach (var extra in extraChannels)
+                    {
+                        // Extra channels (the facility's order/payment feed) are best effort: a refusal must not take the device channel down.
+                        try
+                        {
+                            var extraAuth = await api.AuthorizeChannelAsync(socketId, extra, ct).ConfigureAwait(false);
+                            await socket.SendAsync(JsonSerializer.Serialize(new { @event = "pusher:subscribe", data = new { auth = extraAuth, channel = extra } }), ct).ConfigureAwait(false);
+                        }
+                        catch (ApiException)
+                        {
+                            // polling covers it
+                        }
+                    }
+
                     break;
                 }
 

@@ -45,6 +45,10 @@ POS (this app)  --HTTP-->  on-site 007 Resort & Spa API  -->  on-site MySQL 8.4
 | Reception | Sports/pool booking (hold -> rentals -> pay -> confirm) and ticket/rental sales; prints a **QR entitlement receipt** |
 | Cash session | Open with float; close with a **blind count** (system figure shown only after closing); shift report (print) |
 | History | Payment history by permission; reprint, refund, reversal |
+| Bill (pre-bill) | **Print bill** on an order (`POST /orders/{id}/bill`): 80 mm pre-bill via `IReceiptPrinter`, marked NOT A RECEIPT top and bottom, table / waiter / total / tax lines, pay-link QR when the node sends one, reprint counter (`Bill printed x2`). The order is frozen while billed; **Reopen bill** needs a supervisor (approval or step-up), and printing again after a reopen needs one too |
+| Collected by waiters | Cashier/supervisor inbox of waiter-collected payments still `PENDING_CONFIRMATION` (card-machine slip, cash, transfer): table, order, waiter, tender, amount, approval code / slip ref / last 4, terminal, age with warning colours near expiry. **Confirm** (optional reference check, idempotent) settles the order and prints the receipt; **Reject** needs a reason and warns that a supervisor is alerted. Needs `payment.confirm`. Live via Reverb `payment.*` on the facility channel, polling as fallback, badge in the status bar and on the tab |
+| Cash handover | Count cash a waiter hands over (`/cash-handovers/{id}/receive`), shows the variance; over the facility limit it waits for a supervisor's sign-off (`cash_handover.signoff`, never the receiver). Lists waiters holding cash |
+| Order state chips | `Bill printed` / `Awaiting payment` / `Collected – awaiting confirmation` on table tiles, tab rows, open orders and the cart. A cashier cannot double-collect a bill a waiter already collected (409 `pending_collection_exists`: "confirm it instead") |
 | Queue / status | Connectivity indicator, items waiting to be confirmed, items the server refused (acknowledge) |
 
 ## Emergency offline queue
@@ -126,6 +130,7 @@ dotnet run --project tools/R007.Pos.Harness -- -v                            # a
 dotnet test tests/R007.Pos.IntegrationTests                                  # same, as xunit (category RealNode)
 ```
 
+The `collect-*` scenarios play the waiter with a plain HTTP client (a freshly registered tablet checked out to `wait1`): card-machine collect + confirm + realtime, reject, cash handover with variance and supervisor sign-off, permission denials.
 Each scenario enrols a fresh terminal with a new one-time registration code, so it needs the seeded demo data. Results and the bugs this
 found on both sides: [docs/REAL_API_TEST_REPORT.md](docs/REAL_API_TEST_REPORT.md).
 

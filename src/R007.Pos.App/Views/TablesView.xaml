@@ -35,6 +35,8 @@
                                 <StackPanel>
                                     <TextBlock Text="{Binding Label}" FontSize="22" FontWeight="Bold" TextAlignment="Center" />
                                     <TextBlock Text="{Binding Detail}" TextAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" />
+                                    <TextBlock Text="{Binding ChipsText}" TextAlignment="Center" TextWrapping="Wrap" FontSize="12" FontWeight="Bold" Foreground="{StaticResource WarnBrush}"
+                                               Visibility="{Binding HasChips, Converter={StaticResource BoolToVis}}" />
                                 </StackPanel>
                             </Button>
                         </DataTemplate>
@@ -59,10 +61,14 @@
                             <Button HorizontalContentAlignment="Stretch"
                                     Command="{Binding DataContext.SelectTabCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     CommandParameter="{Binding}">
-                                <DockPanel>
-                                    <TextBlock DockPanel.Dock="Right" Text="{Binding BalanceText}" Foreground="{StaticResource WarnBrush}" />
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                                </DockPanel>
+                                <StackPanel>
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding BalanceText}" Foreground="{StaticResource WarnBrush}" />
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                    </DockPanel>
+                                    <TextBlock Text="{Binding ChipsText}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource WarnBrush}" HorizontalAlignment="Left"
+                                               Visibility="{Binding HasChips, Converter={StaticResource BoolToVis}}" />
+                                </StackPanel>
                             </Button>
                         </DataTemplate>
                     </ListBox.ItemTemplate>

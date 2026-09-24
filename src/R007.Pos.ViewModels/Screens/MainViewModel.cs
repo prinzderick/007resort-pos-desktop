@@ -35,6 +35,21 @@ public sealed class MainViewModel : ScreenViewModel
         Tables = new TablesViewModel(ctx, nav);
         Reception = new ReceptionViewModel(ctx, nav);
         Approvals = new ApprovalsInboxViewModel(ctx);
+        Collections = new CollectionsInboxViewModel(ctx, nav);
+        Handovers = new CashHandoverDeskViewModel(ctx, nav);
+        Collections.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(CollectionsInboxViewModel.PendingCount))
+            {
+                var item = Items.FirstOrDefault(i => ReferenceEquals(i.Screen, Collections));
+                if (item is not null)
+                {
+                    item.Badge = CollectionsBadgeText;
+                }
+
+                OnPropertyChanged(nameof(CollectionsBadgeText));
+            }
+        };
         Cash = new CashSessionViewModel(ctx);
         History = new HistoryViewModel(ctx, nav);
         Queue = new QueueViewModel(ctx);
@@ -64,6 +79,14 @@ public sealed class MainViewModel : ScreenViewModel
     public ReceptionViewModel Reception { get; }
 
     public ApprovalsInboxViewModel Approvals { get; }
+
+    /// <summary>'Collected by waiters': payments waiters took at tables, waiting for this cashier to confirm.</summary>
+    public CollectionsInboxViewModel Collections { get; }
+
+    public CashHandoverDeskViewModel Handovers { get; }
+
+    /// <summary>Count for the shell's status bar badge (null when nothing waits).</summary>
+    public string? CollectionsBadgeText => Collections.PendingCount > 0 ? Collections.PendingCount.ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
 
     public CashSessionViewModel Cash { get; }
 
@@ -135,6 +158,16 @@ public sealed class MainViewModel : ScreenViewModel
             Items.Add(new NavItem("Reception", Reception));
         }
 
+        if (f.ShowCollections)
+        {
+            Items.Add(new NavItem("Collected by waiters", Collections));
+        }
+
+        if (f.ShowHandoverDesk)
+        {
+            Items.Add(new NavItem("Cash handover", Handovers));
+        }
+
         if (f.CanDecideApprovals)
         {
             Items.Add(new NavItem("Approvals", Approvals));
@@ -168,16 +201,47 @@ public sealed class MainViewModel : ScreenViewModel
         }
     }
 
+    /// <summary>A push hint about collections/bills/handovers: reload what is on screen over REST (never trusted as data).</summary>
+    public async Task OnCollectionEventAsync(string name, string? message)
+    {
+        if (Items.Any(i => ReferenceEquals(i.Screen, Collections)))
+        {
+            await Collections.OnRealtimeAsync(name, message).ConfigureAwait(true);
+            var item = Items.First(i => ReferenceEquals(i.Screen, Collections));
+            item.Badge = CollectionsBadgeText;
+            OnPropertyChanged(nameof(CollectionsBadgeText));
+        }
+
+        if (name == "cash-handover.received" && Items.Any(i => ReferenceEquals(i.Screen, Handovers)))
+        {
+            await Handovers.RefreshQuietlyAsync().ConfigureAwait(true);
+        }
+    }
+
     /// <summary>Refresh the supervisor badge (called by the shell's background loop while signed in).</summary>
     public async Task RefreshBadgesAsync()
     {
-        var item = Items.FirstOrDefault(i => ReferenceEquals(i.Screen, Approvals));
-        if (item is null)
+        var approvals = Items.FirstOrDefault(i => ReferenceEquals(i.Screen, Approvals));
+        if (approvals is not null)
         {
-            return;
+            await Approvals.RefreshQuietlyAsync().ConfigureAwait(true);
+            approvals.Badge = Approvals.PendingCount > 0 ? Approvals.PendingCount.ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
         }
 
-        await Approvals.RefreshQuietlyAsync().ConfigureAwait(true);
-        item.Badge = Approvals.PendingCount > 0 ? Approvals.PendingCount.ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
+        var collections = Items.FirstOrDefault(i => ReferenceEquals(i.Screen, Collections));
+        if (collections is not null)
+        {
+            await Collections.RefreshQuietlyAsync().ConfigureAwait(true);
+            Collections.TickAges();
+            collections.Badge = CollectionsBadgeText;
+            OnPropertyChanged(nameof(CollectionsBadgeText));
+        }
+
+        var handovers = Items.FirstOrDefault(i => ReferenceEquals(i.Screen, Handovers));
+        if (handovers is not null)
+        {
+            await Handovers.RefreshQuietlyAsync().ConfigureAwait(true);
+            handovers.Badge = Handovers.OpenCount > 0 ? Handovers.OpenCount.ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
+        }
     }
 }

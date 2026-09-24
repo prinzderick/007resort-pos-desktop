@@ -2,11 +2,19 @@ using System.Collections.ObjectModel;
 using R007.Pos.Core.Api;
 using R007.Pos.Core.Money;
 using R007.Pos.ViewModels.Infrastructure;
+using R007.Pos.ViewModels.Services;
 
 namespace R007.Pos.ViewModels.Screens;
 
-public sealed class TableTile(DiningTable table, Tab? tab)
+public sealed class TableTile(DiningTable table, Tab? tab, IReadOnlyList<OrderChip>? chips = null)
 {
+    /// <summary>Bill printed / Awaiting payment / Collected - awaiting confirmation (from the API's bill fields).</summary>
+    public IReadOnlyList<OrderChip> Chips { get; } = chips ?? [];
+
+    public string ChipsText => OrderStateChips.Joined(Chips);
+
+    public bool HasChips => Chips.Count > 0;
+
     public DiningTable Table { get; } = table;
 
     public Tab? Tab { get; } = tab;
@@ -20,8 +28,14 @@ public sealed class TableTile(DiningTable table, Tab? tab)
         : Table.Status == "FREE" ? "Free" : Table.Status;
 }
 
-public sealed class TabRow(Tab tab, string? tableLabel)
+public sealed class TabRow(Tab tab, string? tableLabel, IReadOnlyList<OrderChip>? chips = null)
 {
+    public IReadOnlyList<OrderChip> Chips { get; } = chips ?? [];
+
+    public string ChipsText => OrderStateChips.Joined(Chips);
+
+    public bool HasChips => Chips.Count > 0;
+
     public Tab Tab { get; } = tab;
 
     public string Title => (string.IsNullOrWhiteSpace(Tab.CustomerName) ? "Tab " + Tab.Id.ToString("N")[..6] : Tab.CustomerName) + (tableLabel is null ? string.Empty : $"  ({tableLabel})");
@@ -81,17 +95,28 @@ public sealed class TablesViewModel : ScreenViewModel
             ? await _ctx.Api.ListOpenTabsAsync(_ctx.FacilityId).ConfigureAwait(true)
             : [];
 
+        IReadOnlyList<OrderSummary> open = [];
+        try
+        {
+            open = (await _ctx.Api.ListOrdersAsync(_ctx.FacilityId, "DRAFT,SENT,IN_PREPARATION,READY,SERVED", null, null, 100).ConfigureAwait(true)).Items;
+        }
+        catch (ApiException)
+        {
+            // No order.view here: tables still work, just without the bill-state chips.
+        }
+
         _tableCache = [.. tables];
         Tables.Clear();
         foreach (var t in tables)
         {
-            Tables.Add(new TableTile(t, tabs.FirstOrDefault(x => x.Id == t.OpenTabId)));
+            var tab = tabs.FirstOrDefault(x => x.Id == t.OpenTabId);
+            Tables.Add(new TableTile(t, tab, OrderStateChips.For(open.Where(o => o.TableId == t.Id || (tab is not null && o.TabId == tab.Id)))));
         }
 
         Tabs.Clear();
         foreach (var tab in tabs)
         {
-            Tabs.Add(new TabRow(tab, TableLabelFor(tab.TableId)));
+            Tabs.Add(new TabRow(tab, TableLabelFor(tab.TableId), OrderStateChips.For(open.Where(o => o.TabId == tab.Id))));
         }
     }
 

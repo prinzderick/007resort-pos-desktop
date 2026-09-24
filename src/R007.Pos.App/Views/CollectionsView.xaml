@@ -1,0 +1,84 @@
+<UserControl x:Class="R007.Pos.App.Views.CollectionsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:R007.Pos.ViewModels.Screens;assembly=R007.Pos.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:CollectionsInboxViewModel}">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <DockPanel>
+            <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshCommand}" />
+            <Button DockPanel.Dock="Right" Content="Reprint last receipt" Command="{Binding ReprintReceiptCommand}" />
+            <TextBlock DockPanel.Dock="Right" Text="{Binding PendingAmountText}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource WarnBrush}" Margin="12,0" />
+            <TextBlock Style="{StaticResource Heading}" Text="Collected by waiters - waiting for your confirmation" />
+        </DockPanel>
+        <StackPanel Grid.Row="1" Margin="0,0,0,8">
+            <TextBlock Style="{StaticResource Muted}" Text="Money below is NOT in the till yet. Check the slip, bank alert or cash, then Confirm. Reject if it does not match." />
+            <Border Background="{StaticResource DangerBrush}" CornerRadius="6" Padding="10,6" Margin="0,6,0,0" Visibility="{Binding HasAlert, Converter={StaticResource BoolToVis}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissAlertCommand}" MinHeight="36" />
+                    <TextBlock Text="{Binding Alert}" FontWeight="Bold" TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
+            <TextBlock Style="{StaticResource ErrorText}" Text="{Binding Error}" Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+            <TextBlock Style="{StaticResource Muted}" Text="{Binding Info}" Visibility="{Binding HasInfo, Converter={StaticResource BoolToVis}}" />
+            <TextBlock Style="{StaticResource Muted}" Text="Nothing is waiting for confirmation." FontSize="18" Margin="0,16,0,0" Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}" />
+        </StackPanel>
+        <ListBox Grid.Row="2" ItemsSource="{Binding Items}" HorizontalContentAlignment="Stretch">
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:CollectionRow}">
+                    <Border Style="{StaticResource Card}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding TableText}" FontSize="20" FontWeight="Bold" />
+                                    <TextBlock Text="{Binding OrderText}" Style="{StaticResource Muted}" Margin="12,0,0,0" />
+                                </StackPanel>
+                                <TextBlock FontSize="22" FontWeight="Bold">
+                                    <Run Text="{Binding AmountText, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding TenderText, Mode=OneWay}" />
+                                </TextBlock>
+                                <TextBlock Text="{Binding WaiterText}" />
+                                <TextBlock Text="{Binding ReferenceText}" Style="{StaticResource Muted}" />
+                                <TextBlock Text="{Binding TerminalText}" Style="{StaticResource Muted}" Visibility="{Binding HasTerminal, Converter={StaticResource BoolToVis}}" />
+                                <TextBlock Text="{Binding AgeText}" FontWeight="SemiBold" Margin="0,4,0,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding LevelName}" Value="Warning">
+                                                    <Setter Property="Foreground" Value="{StaticResource WarnBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding LevelName}" Value="Critical">
+                                                    <Setter Property="Foreground" Value="#FFFF8A80" />
+                                                    <Setter Property="FontWeight" Value="Bold" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding LevelName}" Value="Expired">
+                                                    <Setter Property="Foreground" Value="#FFFF5252" />
+                                                    <Setter Property="FontWeight" Value="Bold" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <Button Style="{StaticResource PrimaryButton}" Content="Confirm" Command="{Binding ConfirmCommand}" MinWidth="140" MinHeight="56" />
+                                <Button Style="{StaticResource DangerButton}" Content="Reject" Command="{Binding RejectCommand}" MinWidth="140" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</UserControl>

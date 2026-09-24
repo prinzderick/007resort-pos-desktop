@@ -275,6 +275,10 @@ public sealed class ContractConformanceTests
         ["OperatingRules"] = ["PaymentTiming"],
         ["Entitlement"] = ["GroupEntitlementIds"],
         ["CashSession"] = ["Totals"],
+        // Waiter collection (api docs/WAITER_COLLECTION.md; every path is x-additive in the node's openapi, the docs contract copy predates it).
+        ["Order"] = ["BillState", "BillPrintedAt", "BillPrintCount", "BillReopenCount", "AwaitingPayment", "PendingCollected", "Collectable"],
+        ["OrderSummary"] = ["BillState", "BillPrintedAt", "BillPrintCount", "BillReopenCount", "AwaitingPayment", "PendingCollected", "Collectable"],
+        ["Payment"] = ["Collection"],
     };
 
     [Fact]
