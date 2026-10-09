@@ -1,7 +1,7 @@
 namespace R007.Pos.Core.Api;
 
 /// <summary>
-/// Typed client for the 007 Resort &amp; Spa API (contract: <c>api/openapi/v1.yaml</c>). The POS is a thin client:
+/// Typed client for the SERI Resort API (contract: <c>api/openapi/v1.yaml</c>). The POS is a thin client:
 /// every business decision (pricing, tax, permissions, stock, entitlements) is made by the API.
 /// <para>Conventions: every mutating call takes an explicit <c>idempotencyKey</c> that the caller generates once per
 /// user intent (<see cref="IdempotencyKeys"/>) and reuses if that intent is retried. Aggregates with a

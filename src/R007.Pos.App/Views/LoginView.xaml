@@ -17,7 +17,7 @@
         <Border Grid.Column="0" Background="{StaticResource AccentContainerBrush}">
             <StackPanel VerticalAlignment="Center" Margin="40">
                 <TextBlock Text="&#xE1FB;" FontFamily="Segoe MDL2 Assets" FontSize="56" Foreground="{StaticResource OnAccentContainerBrush}" />
-                <TextBlock Text="007 Resort &amp; Spa" FontSize="30" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainerBrush}" Margin="0,16,0,4" />
+                <TextBlock Text="SERI Resort" FontSize="30" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainerBrush}" Margin="0,16,0,4" />
                 <TextBlock Text="POS terminal" FontSize="20" Foreground="{StaticResource OnAccentContainerBrush}" />
                 <TextBlock Text="{Binding FacilityName}" FontSize="18" Foreground="{StaticResource OnAccentContainerBrush}" Margin="0,4,0,0"
                            Visibility="{Binding FacilityName, Converter={StaticResource NullToVis}}" />

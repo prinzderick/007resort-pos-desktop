@@ -434,7 +434,7 @@ public sealed class PaymentViewModel : ModalViewModel
     internal static R007.Pos.Devices.Printing.ReceiptDocument TicketSlip(Entitlement e, string? facilityName) =>
         new(
             [
-                new R007.Pos.Devices.Printing.ReceiptLine("007 Resort & Spa", R007.Pos.Devices.Printing.ReceiptAlignment.Center, true),
+                new R007.Pos.Devices.Printing.ReceiptLine("SERI Resort", R007.Pos.Devices.Printing.ReceiptAlignment.Center, true),
                 .. e.Items.Select(i => new R007.Pos.Devices.Printing.ReceiptLine($"{i.Quantity} x {i.Name}", R007.Pos.Devices.Printing.ReceiptAlignment.Center)),
                 new R007.Pos.Devices.Printing.ReceiptLine("Scan at the gate. One use per ticket.", R007.Pos.Devices.Printing.ReceiptAlignment.Center),
             ],

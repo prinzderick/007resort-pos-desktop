@@ -7,7 +7,7 @@
         xmlns:vm="clr-namespace:R007.Pos.ViewModels.Screens;assembly=R007.Pos.ViewModels"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vmroot:ShellViewModel}"
-        Title="007 Resort &amp; Spa POS"
+        Title="SERI Resort POS"
         Background="{StaticResource GroundBrush}"
         WindowState="Maximized"
         MinWidth="1024" MinHeight="700">
@@ -23,7 +23,7 @@
             <DockPanel>
                 <Border DockPanel.Dock="Top" Width="52" Height="52" CornerRadius="14" Background="{StaticResource AccentBrush}"
                         Margin="0,16,0,20" HorizontalAlignment="Center">
-                    <TextBlock Text="007" Foreground="White" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" />
+                    <TextBlock Text="SERI" Foreground="White" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" />
                 </Border>
                 <ListBox x:Name="Rail" ItemsSource="{Binding Current.Items}" SelectedItem="{Binding Current.Selected, Mode=OneWay}"
                          SelectionChanged="OnRailItemSelected" ItemContainerStyle="{StaticResource RailItem}"
@@ -80,7 +80,7 @@
             <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,0,0,1"
                     Padding="28,0" Height="72">
                 <DockPanel LastChildFill="False">
-                    <TextBlock DockPanel.Dock="Left" Text="007 Resort &amp; Spa" FontWeight="Bold" FontSize="20" Margin="0,0,16,0" />
+                    <TextBlock DockPanel.Dock="Left" Text="SERI Resort" FontWeight="Bold" FontSize="20" Margin="0,0,16,0" />
                     <TextBlock DockPanel.Dock="Left" Text="{Binding FacilityName}" Foreground="{StaticResource MutedBrush}" Margin="0,0,16,0" />
                     <Border DockPanel.Dock="Left" Background="{StaticResource BadgeBrush}" CornerRadius="4" Padding="8,2" Margin="0,0,16,0"
                             Visibility="{Binding IsDemoMode, Converter={StaticResource BoolToVis}}">

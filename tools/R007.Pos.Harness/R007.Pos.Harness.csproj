@@ -2,7 +2,7 @@
 
   <!--
     Real-node harness: drives the POS's real Core / API-client / view-model / receipt stack against a running
-    007 Resort & Spa node (Laravel API). Pure .NET: runs on macOS/Linux/Windows. See docs/REAL_API_TEST_REPORT.md.
+    SERI Resort node (Laravel API). Pure .NET: runs on macOS/Linux/Windows. See docs/REAL_API_TEST_REPORT.md.
     The scenarios live here so the console harness and the xunit category (tests/R007.Pos.IntegrationTests) share them.
   -->
   <PropertyGroup>

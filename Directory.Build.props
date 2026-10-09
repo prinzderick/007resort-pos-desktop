@@ -8,8 +8,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <Deterministic>true</Deterministic>
-    <Company>007 Resort &amp; Spa</Company>
-    <Product>007 Resort &amp; Spa POS</Product>
+    <Company>SERI Resort</Company>
+    <Product>SERI Resort POS</Product>
     <Version>0.1.0</Version>
   </PropertyGroup>
 </Project>

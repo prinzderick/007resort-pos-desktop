@@ -10,7 +10,7 @@ public sealed class SimulatedDeviceTests
     public async Task ReceiptPrinter_RecordsDocuments_WhenReady()
     {
         var printer = new SimulatedReceiptPrinter();
-        var receipt = new ReceiptDocument([new ReceiptLine("007 RESORT & SPA", ReceiptAlignment.Center, Bold: true)]);
+        var receipt = new ReceiptDocument([new ReceiptLine("SERI RESORT", ReceiptAlignment.Center, Bold: true)]);
 
         await printer.PrintAsync(receipt);
 
