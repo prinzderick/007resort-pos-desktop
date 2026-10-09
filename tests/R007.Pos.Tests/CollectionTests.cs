@@ -550,6 +550,8 @@ public sealed class CollectionTests
             var receive = (ReceiveHandoverViewModel)m;
             receive.CountedText = "2000";
             Assert.Equal("SHORT by ₦1,000.00", receive.VariancePreview);
+            Assert.True(receive.NoteRequired); // a short count cannot be recorded without a note
+            receive.Note = "Counted twice in front of the waiter";
             await receive.ReceiveCommand.ExecuteAsync();
             Assert.Null(receive.Error);
         };

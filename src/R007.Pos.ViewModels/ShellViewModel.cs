@@ -75,7 +75,13 @@ public sealed class ShellViewModel : ObservableObject, INavigator
     public ScreenViewModel? Current
     {
         get => _current;
-        private set => SetProperty(ref _current, value);
+        private set
+        {
+            if (SetProperty(ref _current, value))
+            {
+                OnPropertyChanged(nameof(Main));
+            }
+        }
     }
 
     public ObservableCollection<ModalViewModel> Modals { get; } = [];
