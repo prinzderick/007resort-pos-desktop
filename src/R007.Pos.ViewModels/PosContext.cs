@@ -1,3 +1,4 @@
+using R007.Pos.Core;
 using R007.Pos.Core.Api;
 using R007.Pos.Core.Configuration;
 using R007.Pos.Core.Http;
@@ -228,7 +229,7 @@ public sealed class PosContext : ObservableObject
                 ct).ConfigureAwait(true);
 
             var facilityId = result.Device.FacilityId ?? result.Device.HomeFacilityId
-                ?? throw new InvalidOperationException("The server did not assign this terminal to a facility. Ask IT to assign one.");
+                ?? throw new OperatorException("The server registered this terminal but did not attach it to a facility, so it cannot start. In the admin go to People > Devices, delete this device, create a new registration code with a Home facility chosen, and register again.");
 
             string? facilityName = null;
             Auth.SetDeviceToken(result.DeviceToken);
@@ -242,7 +243,15 @@ public sealed class PosContext : ObservableObject
             }
 
             var identity = new DeviceIdentity(serverUrl, result.Device.Id, result.DeviceToken, result.Device.Name, facilityId, null, facilityName);
-            IdentityStore.Save(identity);
+            try
+            {
+                IdentityStore.Save(identity);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException)
+            {
+                throw new OperatorException($"The server registered this terminal, but this PC could not save its enrolment ({ex.Message}). Ask IT, then register again with a new code.");
+            }
+
             ApplyIdentity(identity);
         }
         catch
@@ -260,6 +269,62 @@ public sealed class PosContext : ObservableObject
         Auth.SignOut();
         Identity = null;
         Capabilities = null;
+        RecomputeFeatures();
+    }
+
+    /// <summary>The enrolments this terminal holds, one per server (the property server and the online server each issue their own).</summary>
+    public IReadOnlyList<DeviceIdentity> EnrolledServers => IdentityStore.All();
+
+    /// <summary>
+    /// Points this terminal at another server (property server &lt;-&gt; online server). Each server keeps its own enrolment,
+    /// restored when you switch back; a server with none yet sends the terminal to the setup screen. Refused while
+    /// emergency-queue items are waiting (they must never replay against a different server than the one that took them),
+    /// and it never leaves the terminal pointing at a server that does not answer.
+    /// </summary>
+    public async Task SwitchServerAsync(Uri target, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        if (IdentityBook.Key(target) == IdentityBook.Key(Endpoint.Current))
+        {
+            return;
+        }
+
+        var waiting = await Queue.CountPendingAsync().ConfigureAwait(true);
+        if (waiting > 0)
+        {
+            throw new OperatorException($"{waiting} item(s) are still waiting to be confirmed by this server. Reconnect to it and let them send before switching.");
+        }
+
+        var previous = Endpoint.Current;
+        var previousToken = Identity?.DeviceToken;
+        await SignOutAsync().ConfigureAwait(true); // ends the session on the server being left
+
+        // Nothing of the old server (device token, session) may travel to the new one.
+        Auth.SetDeviceToken(null);
+        Endpoint.Current = target;
+        try
+        {
+            ServerInfo = await Api.GetSystemInfoAsync(ct).ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is ApiException or ApiUnavailableException)
+        {
+            Endpoint.Current = previous;
+            Auth.SetDeviceToken(previousToken);
+            throw;
+        }
+
+        IdentityStore.Activate(target);
+        if (IdentityStore.Load() is { } known)
+        {
+            ApplyIdentity(known);
+        }
+        else
+        {
+            Identity = null;
+            Capabilities = null;
+            FacilityName = string.Empty;
+        }
+
         RecomputeFeatures();
     }
 

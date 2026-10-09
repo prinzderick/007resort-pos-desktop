@@ -17,6 +17,15 @@ public sealed class PaymentRow(Payment payment, HistoryViewModel owner)
 
     public string Status => Payment.Status;
 
+    /// <summary>Status-pill colour family (spec: "order table with status pills"): good / warn / bad / neutral.</summary>
+    public string StatusKind => Payment.Status switch
+    {
+        PaymentStatuses.Captured => "good",
+        PaymentStatuses.Initiated or PaymentStatuses.Authorizing or PaymentStatuses.PendingConfirmation => "warn",
+        PaymentStatuses.Failed or PaymentStatuses.Rejected or PaymentStatuses.Expired => "bad",
+        _ => "neutral",
+    };
+
     public string Reference => Payment.Reference ?? Payment.ProviderReference ?? string.Empty;
 
     public bool CanReprint => owner.CanReprint && Payment.ReceiptId is not null;

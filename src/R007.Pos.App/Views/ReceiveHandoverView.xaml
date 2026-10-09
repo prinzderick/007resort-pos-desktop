@@ -13,9 +13,45 @@
         <TextBlock Text="{Binding Guidance}" Style="{StaticResource Muted}" Margin="0,6,0,0" />
         <TextBlock Text="Counted amount (naira)" Style="{StaticResource Muted}" Margin="0,10,0,0" />
         <TextBox Text="{Binding CountedText, UpdateSourceTrigger=PropertyChanged}" MaxWidth="300" HorizontalAlignment="Left" />
-        <TextBlock Text="{Binding VariancePreview}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource WarnBrush}" Margin="0,6,0,0" />
-        <TextBlock Text="Note (optional)" Style="{StaticResource Muted}" Margin="0,8,0,0" />
-        <TextBox Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBlock Text="{Binding VariancePreview}" FontSize="18" FontWeight="Bold" Margin="0,6,0,0" Visibility="{Binding HasPreview, Converter={StaticResource BoolToVis}}">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsShort}" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsOver}" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource WarnBrush}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+        <TextBlock Text="{Binding NoteLabel}" Margin="0,8,0,0">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsShort}" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+        <TextBox Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}">
+            <TextBox.Style>
+                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding NoteRequired}" Value="True">
+                            <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBox.Style>
+        </TextBox>
         <TextBlock Style="{StaticResource ErrorText}" Text="{Binding Error}" Margin="0,10,0,0" Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
             <Button Style="{StaticResource PrimaryButton}" Content="Record count" Command="{Binding ReceiveCommand}" MinWidth="180" MinHeight="56" />
