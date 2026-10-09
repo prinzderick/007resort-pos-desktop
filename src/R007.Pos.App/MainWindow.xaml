@@ -80,7 +80,7 @@
             <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,0,0,1"
                     Padding="28,0" Height="72">
                 <DockPanel LastChildFill="False">
-                    <TextBlock DockPanel.Dock="Left" Text="SERI Resort" FontWeight="Bold" FontSize="20" Margin="0,0,16,0" />
+                    <TextBlock DockPanel.Dock="Left" Text="SERI Resort" FontWeight="Bold" FontSize="20" Margin="0,0,16,0" MouseLeftButtonUp="OnTitleClicked" />
                     <TextBlock DockPanel.Dock="Left" Text="{Binding FacilityName}" Foreground="{StaticResource MutedBrush}" Margin="0,0,16,0" />
                     <Border DockPanel.Dock="Left" Background="{StaticResource BadgeBrush}" CornerRadius="4" Padding="8,2" Margin="0,0,16,0"
                             Visibility="{Binding IsDemoMode, Converter={StaticResource BoolToVis}}">

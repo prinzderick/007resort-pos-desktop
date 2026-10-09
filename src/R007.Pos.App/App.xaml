@@ -365,6 +365,7 @@
             <DataTemplate DataType="{x:Type vm:CustomerLookupViewModel}"><views:CustomerLookupView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:OpenTabViewModel}"><views:OpenTabView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:OpenOrdersViewModel}"><views:OpenOrdersView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ConnectionViewModel}"><views:ConnectionView /></DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

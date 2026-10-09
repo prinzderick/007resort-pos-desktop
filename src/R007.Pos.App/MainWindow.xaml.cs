@@ -18,6 +18,8 @@ public partial class MainWindow : Window
     private readonly ShellViewModel _shell;
     private readonly KeyboardWedgeDecoder _decoder;
     private string _leaked = string.Empty;
+    private int _titleClicks;
+    private DateTimeOffset _lastTitleClick = DateTimeOffset.MinValue;
 
     public MainWindow(ShellViewModel shell, int wedgeMaxKeyIntervalMs)
     {
@@ -29,6 +31,19 @@ public partial class MainWindow : Window
         PreviewKeyDown += OnPreviewKeyDown;
         PreviewMouseDown += (_, _) => _shell.NotifyActivity();
         PreviewTouchDown += (_, _) => _shell.NotifyActivity();
+    }
+
+    // Seven quick clicks on the title open the hidden Connection dialog (property server <-> online server).
+    private void OnTitleClicked(object sender, MouseButtonEventArgs e)
+    {
+        var now = DateTimeOffset.UtcNow;
+        _titleClicks = now - _lastTitleClick > TimeSpan.FromSeconds(2) ? 1 : _titleClicks + 1;
+        _lastTitleClick = now;
+        if (_titleClicks >= 7)
+        {
+            _titleClicks = 0;
+            _ = _shell.OpenConnectionAsync();
+        }
     }
 
     private void OnPreviewTextInput(object sender, TextCompositionEventArgs e)
