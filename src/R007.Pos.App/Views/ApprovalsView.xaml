@@ -61,7 +61,10 @@
         </Grid>
 
         <Border Grid.Column="1" Style="{StaticResource Card}" Margin="10,0,0,0" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVis}}">
-            <StackPanel DataContext="{Binding Selected}" Margin="10">
+            <ContentControl Content="{Binding Selected}">
+            <ContentControl.ContentTemplate>
+            <DataTemplate DataType="{x:Type vm:ApprovalRow}">
+            <StackPanel Margin="10">
                 <Border Background="{StaticResource SubtleBrush}" CornerRadius="13" Padding="11,4" HorizontalAlignment="Left">
                     <TextBlock Text="PENDING" FontSize="12" FontWeight="ExtraBold" Foreground="{StaticResource MutedBrush}" />
                 </Border>
@@ -89,6 +92,9 @@
                     <Button Style="{StaticResource PrimaryButton}" Content="Approve" Command="{Binding ApproveCommand}" MinWidth="150" MinHeight="52" />
                 </StackPanel>
             </StackPanel>
+            </DataTemplate>
+            </ContentControl.ContentTemplate>
+            </ContentControl>
         </Border>
 
         <Border Grid.Column="1" Margin="10,0,0,0" Visibility="{Binding HasSelection, Converter={StaticResource InvBoolToVis}}">
