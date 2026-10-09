@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using R007.Pos.Core;
 using R007.Pos.Core.Api;
 using System.Text.Json;
 using R007.Pos.Core.Http;
@@ -367,9 +368,9 @@ public sealed class ShellViewModel : ObservableObject, INavigator
         {
             await _ctx.SwitchServerAsync(target).ConfigureAwait(true);
         }
-        catch (Exception ex) when (ex is ApiException or ApiUnavailableException or InvalidOperationException)
+        catch (Exception ex) when (ex is ApiException or ApiUnavailableException or OperatorException)
         {
-            failure = ex is InvalidOperationException ? ex.Message : $"Could not switch to {target.Host}: {ScreenViewModel.Describe(ex)} Still on the previous server; sign in again.";
+            failure = ex is OperatorException ? ex.Message : $"Could not switch to {target.Host}: {ScreenViewModel.Describe(ex)} Still on the previous server; sign in again.";
         }
 
         Banner = null;

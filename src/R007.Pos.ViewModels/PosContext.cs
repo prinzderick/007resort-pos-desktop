@@ -1,3 +1,4 @@
+using R007.Pos.Core;
 using R007.Pos.Core.Api;
 using R007.Pos.Core.Configuration;
 using R007.Pos.Core.Http;
@@ -228,7 +229,7 @@ public sealed class PosContext : ObservableObject
                 ct).ConfigureAwait(true);
 
             var facilityId = result.Device.FacilityId ?? result.Device.HomeFacilityId
-                ?? throw new InvalidOperationException("The server did not assign this terminal to a facility. Ask IT to assign one.");
+                ?? throw new OperatorException("The server registered this terminal but did not attach it to a facility, so it cannot start. In the admin go to People > Devices, delete this device, create a new registration code with a Home facility chosen, and register again.");
 
             string? facilityName = null;
             Auth.SetDeviceToken(result.DeviceToken);
@@ -242,7 +243,15 @@ public sealed class PosContext : ObservableObject
             }
 
             var identity = new DeviceIdentity(serverUrl, result.Device.Id, result.DeviceToken, result.Device.Name, facilityId, null, facilityName);
-            IdentityStore.Save(identity);
+            try
+            {
+                IdentityStore.Save(identity);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException)
+            {
+                throw new OperatorException($"The server registered this terminal, but this PC could not save its enrolment ({ex.Message}). Ask IT, then register again with a new code.");
+            }
+
             ApplyIdentity(identity);
         }
         catch
@@ -283,7 +292,7 @@ public sealed class PosContext : ObservableObject
         var waiting = await Queue.CountPendingAsync().ConfigureAwait(true);
         if (waiting > 0)
         {
-            throw new InvalidOperationException($"{waiting} item(s) are still waiting to be confirmed by this server. Reconnect to it and let them send before switching.");
+            throw new OperatorException($"{waiting} item(s) are still waiting to be confirmed by this server. Reconnect to it and let them send before switching.");
         }
 
         var previous = Endpoint.Current;
