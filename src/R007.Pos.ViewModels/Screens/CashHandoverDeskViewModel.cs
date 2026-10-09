@@ -37,6 +37,10 @@ public sealed class HandoverRow
 
     public bool HasVariance => Handover.Variance is not null;
 
+    public bool IsShort => Handover.Variance is < 0m;
+
+    public bool IsOver => Handover.Variance is > 0m;
+
     public bool NeedsSignoff => Handover.IsPendingSignoff;
 
     public string AgeText { get; }
@@ -226,7 +230,7 @@ public sealed class ReceiveHandoverViewModel : ModalViewModel
     {
         _ctx = ctx;
         _row = row;
-        ReceiveCommand = new AsyncRelayCommand(ReceiveAsync, () => !IsBusy && Result is null && _ctx.Features.CanReceiveHandovers, SetError);
+        ReceiveCommand = new AsyncRelayCommand(ReceiveAsync, () => !IsBusy && Result is null && _ctx.Features.CanReceiveHandovers && !(IsShort && string.IsNullOrWhiteSpace(Note)), SetError);
         CancelCommand = new RelayCommand(() => Close(Result is not null));
     }
 
@@ -246,6 +250,11 @@ public sealed class ReceiveHandoverViewModel : ModalViewModel
                 _key = IdempotencyKeys.New();
                 OnPropertyChanged(nameof(VariancePreview));
                 OnPropertyChanged(nameof(HasPreview));
+                OnPropertyChanged(nameof(IsShort));
+                OnPropertyChanged(nameof(IsOver));
+                OnPropertyChanged(nameof(NoteRequired));
+                OnPropertyChanged(nameof(NoteLabel));
+                ReceiveCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -253,23 +262,41 @@ public sealed class ReceiveHandoverViewModel : ModalViewModel
     public string Note
     {
         get => _note;
-        set => SetProperty(ref _note, value);
+        set
+        {
+            if (SetProperty(ref _note, value))
+            {
+                ReceiveCommand.RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(NoteRequired));
+            }
+        }
     }
 
     public bool HasPreview => MoneyFormat.TryParseEnteredAllowZero(CountedText, out _);
+
+    private decimal? Variance => MoneyFormat.TryParseEnteredAllowZero(CountedText, out var counted) ? counted - _row.Handover.DeclaredAmount : null;
+
+    public bool IsShort => Variance is < 0m;
+
+    public bool IsOver => Variance is > 0m;
+
+    /// <summary>A short count needs a reason on record before it can be accepted into the till (spec: "required note when short").</summary>
+    public bool NoteRequired => IsShort && string.IsNullOrWhiteSpace(Note);
+
+    public string NoteLabel => IsShort ? "Note (required - the count is short)" : "Note (optional)";
 
     /// <summary>Counted minus declared as the cashier types (display only; the node records the real variance).</summary>
     public string VariancePreview
     {
         get
         {
-            if (!MoneyFormat.TryParseEnteredAllowZero(CountedText, out var counted))
+            var v = Variance;
+            if (v is null)
             {
                 return string.Empty;
             }
 
-            var v = counted - _row.Handover.DeclaredAmount;
-            return v == 0m ? "Matches the declared amount." : v < 0m ? "SHORT by " + MoneyFormat.Display(-v) : "OVER by " + MoneyFormat.Display(v);
+            return v == 0m ? "Matches the declared amount." : v < 0m ? "SHORT by " + MoneyFormat.Display(-v.Value) : "OVER by " + MoneyFormat.Display(v.Value);
         }
     }
 

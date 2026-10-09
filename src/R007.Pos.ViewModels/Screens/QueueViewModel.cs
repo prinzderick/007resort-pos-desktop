@@ -40,6 +40,10 @@ public sealed class QueueViewModel : ScreenViewModel
             : $"{_status.PendingCount} waiting to be confirmed" + (_status.OldestPendingAge is { } age ? $" (oldest {age.TotalMinutes:0} min)" : string.Empty)
               + (_status.UnacknowledgedRejectedCount > 0 ? $", {_status.UnacknowledgedRejectedCount} refused by the server" : string.Empty);
 
+    public string PendingCountText => (_status?.PendingCount ?? 0).ToString();
+
+    public string RejectedCountText => (_status?.UnacknowledgedRejectedCount ?? 0).ToString();
+
     public string? BlockedText => _status?.BlockedReason;
 
     public bool CorruptionDetected => _status?.CorruptionDetected == true;
@@ -78,6 +82,8 @@ public sealed class QueueViewModel : ScreenViewModel
             OnPropertyChanged(nameof(SummaryText));
             OnPropertyChanged(nameof(BlockedText));
             OnPropertyChanged(nameof(CorruptionDetected));
+            OnPropertyChanged(nameof(PendingCountText));
+            OnPropertyChanged(nameof(RejectedCountText));
         }
         finally
         {

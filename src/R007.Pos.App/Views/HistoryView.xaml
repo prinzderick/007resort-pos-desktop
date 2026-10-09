@@ -26,7 +26,7 @@
         <ListBox Grid.Row="2" ItemsSource="{Binding Rows}" HorizontalContentAlignment="Stretch">
             <ListBox.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:PaymentRow}">
-                    <Border BorderBrush="#FF3A4350" BorderThickness="0,0,0,1" Padding="0,4">
+                    <Border BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,1" Padding="0,4">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="110" />
@@ -39,7 +39,42 @@
                             <TextBlock Grid.Column="0" Text="{Binding TimeText}" />
                             <TextBlock Grid.Column="1" Text="{Binding Tender}" />
                             <TextBlock Grid.Column="2" Text="{Binding AmountText}" FontWeight="Bold" />
-                            <TextBlock Grid.Column="3" Text="{Binding Status}" Style="{StaticResource Muted}" />
+                            <Border Grid.Column="3">
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource StatusPill}">
+                                        <Setter Property="Background" Value="{StaticResource SubtleBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding StatusKind}" Value="good">
+                                                <Setter Property="Background" Value="{StaticResource AccentTintBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding StatusKind}" Value="warn">
+                                                <Setter Property="Background" Value="#FFFBE7D2" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding StatusKind}" Value="bad">
+                                                <Setter Property="Background" Value="{StaticResource DangerBorderBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="{Binding Status}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource StatusPillText}">
+                                            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding StatusKind}" Value="good">
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentDeepBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding StatusKind}" Value="warn">
+                                                    <Setter Property="Foreground" Value="{StaticResource WarnBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding StatusKind}" Value="bad">
+                                                    <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
                             <TextBlock Grid.Column="4" Text="{Binding Reference}" Style="{StaticResource Muted}" />
                             <StackPanel Grid.Column="5" Orientation="Horizontal">
                                 <Button Content="Reprint" Command="{Binding ReprintCommand}" MinHeight="40"

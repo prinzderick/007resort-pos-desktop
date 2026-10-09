@@ -10,7 +10,7 @@
         <TextBlock Style="{StaticResource Heading}" Text="{Binding Title}" />
         <TextBlock Text="{Binding Summary}" FontSize="18" TextWrapping="Wrap" />
         <Border Background="{StaticResource DangerBrush}" CornerRadius="6" Padding="10,8" Margin="0,10,0,0">
-            <TextBlock Text="{Binding WarningText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding WarningText}" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="White" />
         </Border>
         <TextBlock Text="Reason (required, recorded in the audit trail)" Style="{StaticResource Muted}" Margin="0,10,0,0" />
         <TextBox Text="{Binding Reason, UpdateSourceTrigger=PropertyChanged}" />

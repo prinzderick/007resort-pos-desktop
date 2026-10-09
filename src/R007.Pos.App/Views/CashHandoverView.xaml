@@ -41,7 +41,21 @@
                                     <TextBlock Text="{Binding WaiterText}" FontSize="20" FontWeight="Bold" />
                                     <TextBlock Text="{Binding DeclaredText}" FontSize="18" />
                                     <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource WarnBrush}" FontWeight="SemiBold" />
-                                    <TextBlock Text="{Binding VarianceText}" FontWeight="Bold" Visibility="{Binding HasVariance, Converter={StaticResource BoolToVis}}" />
+                                    <TextBlock Text="{Binding VarianceText}" FontWeight="Bold" Visibility="{Binding HasVariance, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsShort}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsOver}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource WarnBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                     <TextBlock Text="{Binding AgeText}" Style="{StaticResource Muted}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using R007.Pos.Core.Api;
 using R007.Pos.Core.Money;
 using R007.Pos.ViewModels.Infrastructure;
@@ -27,6 +28,7 @@ public sealed class ApprovalsInboxViewModel : ScreenViewModel
 {
     private readonly PosContext _ctx;
     private string _note = string.Empty;
+    private ApprovalRow? _selected;
 
     public ApprovalsInboxViewModel(PosContext ctx)
     {
@@ -35,6 +37,21 @@ public sealed class ApprovalsInboxViewModel : ScreenViewModel
     }
 
     public ObservableCollection<ApprovalRow> Pending { get; } = [];
+
+    /// <summary>The row shown in the detail pane (spec: Approvals is a list + detail split, not a flat card list).</summary>
+    public ApprovalRow? Selected
+    {
+        get => _selected;
+        set
+        {
+            if (SetProperty(ref _selected, value))
+            {
+                OnPropertyChanged(nameof(HasSelection));
+            }
+        }
+    }
+
+    public bool HasSelection => Selected is not null;
 
     /// <summary>Optional note attached to the next decision.</summary>
     public string Note
@@ -67,11 +84,14 @@ public sealed class ApprovalsInboxViewModel : ScreenViewModel
     private async Task LoadAsync()
     {
         var items = await _ctx.Api.ListApprovalsAsync("approvable").ConfigureAwait(true);
+        var selectedId = Selected?.Approval.Id;
         Pending.Clear();
         foreach (var a in items)
         {
             Pending.Add(new ApprovalRow(a, this));
         }
+
+        Selected = Pending.FirstOrDefault(r => r.Approval.Id == selectedId) ?? Pending.FirstOrDefault();
 
         OnPropertyChanged(nameof(PendingCount));
     }
