@@ -91,6 +91,9 @@ public sealed class LoginViewModel : ScreenViewModel, IScanTarget
         }
     }
 
+    /// <summary>This terminal's facility, shown on the brand panel so a sign-in mistake (wrong till) is obvious.</summary>
+    public string FacilityName => _ctx.FacilityName;
+
     /// <summary>Shown only in demo mode: the seeded staff (PIN / card).</summary>
     public string? DemoHint => _ctx.Options.Mock
         ? $"DEMO staff (staff number / PIN): S-1001 cashier / {R007.Pos.Core.Mock.MockData.CashierPin}, S-1002 waiter / {R007.Pos.Core.Mock.MockData.WaiterPin}, S-1003 supervisor / {R007.Pos.Core.Mock.MockData.SupervisorPin} (username cashier|waiter|supervisor with the same PIN as password). Card UIDs: {R007.Pos.Core.Mock.MockData.CashierNfc} (cashier), {R007.Pos.Core.Mock.MockData.SupervisorNfc} (supervisor). Set R007_Pos__RequireNfcAndPin=true to try the NFC + PIN station."

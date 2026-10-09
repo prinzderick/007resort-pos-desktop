@@ -73,6 +73,11 @@ public sealed record SellTarget(Guid? TableId, string? TableLabel, Tab? Tab)
 /// </summary>
 public sealed class SellViewModel : ScreenViewModel, IScanTarget
 {
+    private static readonly string[] OpenOrderStatuses =
+    [
+        OrderStatuses.Draft, OrderStatuses.Sent, OrderStatuses.InPreparation, OrderStatuses.Ready, OrderStatuses.Served,
+    ];
+
     private readonly PosContext _ctx;
     private readonly INavigator _nav;
     private CategoryChip _selectedCategory;
@@ -220,7 +225,10 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
 
     public bool IsPendingConfirmation => _order?.IsPendingConfirmation == true;
 
-    public string OrderNumberText => _order is null ? "No order yet" : $"Order {_order.Number}  [{_order.Status}]";
+    // Billing is tracked separately from the order's workflow status, so a DRAFT/SENT order with its bill already
+    // printed should say so here rather than just "[DRAFT]" - the StatusBanner below already explains it in full,
+    // but this header label is what's visible at a glance.
+    public string OrderNumberText => _order is null ? "No order yet" : $"Order {_order.Number}  [{(_order.IsBilled ? "BILL PRINTED" : _order.Status)}]";
 
     public string SubtotalText => _order?.Subtotal is { } v ? MoneyFormat.Display(v, _order.Currency) : string.Empty;
 
@@ -290,6 +298,11 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
     public bool CanComp => _ctx.Features.CanComp && !IsPendingConfirmation && !IsBilled;
 
     public bool CanPriceOverride => _ctx.Features.CanPriceOverride && !IsPendingConfirmation && !IsBilled;
+
+    /// <summary>Whether the "more" toggle on a cart line is worth showing at all - these three are each gated by
+    /// the signed-in staff member's own server-side permissions (Discount/Comp/PriceOverride Execute or Approve),
+    /// so a plain waiter without any of them never sees the toggle, let alone the actions behind it.</summary>
+    public bool HasLineAdjustmentOptions => CanDiscount || CanComp || CanPriceOverride;
 
     public bool CanEditLines => _order is { IsDraft: true, IsPendingConfirmation: false, IsBilled: false } && _ctx.Features.CanRemoveLines;
 
@@ -361,16 +374,21 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
     private async Task RefreshOpenOrdersQuietlyAsync()
     {
         OpenOrders.Clear();
-        if (_target.TableId is null && _target.Tab is null)
-        {
-            OnPropertyChanged(nameof(HasOpenOrders));
-            return;
-        }
 
         try
         {
-            var page = await _ctx.Api.ListOrdersAsync(_ctx.FacilityId, "DRAFT,SENT,IN_PREPARATION,READY,SERVED", _target.Tab?.Id, null, 100).ConfigureAwait(true);
-            foreach (var o in page.Items.Where(o => _target.Tab is not null || o.TableId == _target.TableId))
+            // One request per status, not a comma-joined filter[status]: the contract only documents a single-value
+            // filter and the combined list silently matched nothing on the real node.
+            var orders = await _ctx.Orders.ListOpenOrdersAsync(_ctx.FacilityId, OpenOrderStatuses, _target.Tab?.Id).ConfigureAwait(true);
+            // Same target as the cart we're showing: on a table/tab, every order there; on a plain counter
+            // sale (no table, no tab - e.g. Reception or a shop till), every other counter order at this
+            // facility, so "New order" never strands a draft nobody can find again.
+            var here = orders.Where(o => _target.Tab is not null
+                ? true
+                : _target.TableId is not null
+                    ? o.TableId == _target.TableId
+                    : o.TableId is null && o.TabId is null);
+            foreach (var o in here.Where(o => o.Id != _order?.Id))
             {
                 OpenOrders.Add(new OpenOrderRow(o));
             }
@@ -393,6 +411,25 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
         Error = null;
         _order = WorkingOrder.FromServer(await _ctx.Api.GetOrderAsync(row.Order.Id).ConfigureAwait(true));
         RebuildCart();
+    }
+
+    /// <summary>Loads any open/draft order from anywhere in the facility (the hamburger "Open orders" picker), not just
+    /// the ones already on the current table/tab/counter context - so switching to it also re-points the target
+    /// (table, tab or counter) this screen is now working against.</summary>
+    public async Task LoadOrderAsync(OrderSummary summary)
+    {
+        Error = null;
+        Tab? tab = null;
+        if (summary.TabId is { } tabId)
+        {
+            tab = await _ctx.Api.GetTabAsync(tabId).ConfigureAwait(true);
+        }
+
+        Target = new SellTarget(summary.TableId, summary.TableLabel, tab);
+        ActiveTab = tab;
+        _order = WorkingOrder.FromServer(await _ctx.Api.GetOrderAsync(summary.Id).ConfigureAwait(true));
+        RebuildCart();
+        await RefreshOpenOrdersQuietlyAsync().ConfigureAwait(true);
     }
 
     private async Task PrintBillAsync()
@@ -501,14 +538,29 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
             _order = null; // a sent/closed order is final: the next item starts a new one on the same table/tab
         }
 
-        var updated = await _ctx.Orders.AddProductAsync(_order, product, 1, PendingNote, OrderTarget()).ConfigureAwait(true);
-        PendingNote = null;
-        _order = updated;
-        RebuildCart();
-        if (updated.IsPendingConfirmation)
+        // Tapping the same tile again should bump the existing line's quantity, not add a second row for it -
+        // but only while the line is still a plain draft line we can safely re-quantity (same product, same note).
+        var note = string.IsNullOrWhiteSpace(PendingNote) ? null : PendingNote.Trim();
+        var existing = _order is not null && CanEditLines
+            ? _order.Lines.FirstOrDefault(l => l.ProductId == product.Id && l.Notes == note)
+            : null;
+
+        if (existing is not null)
         {
-            Info = "Server unreachable: item saved on this terminal (pending confirmation).";
+            _order = await _ctx.Orders.SetQuantityAsync(_order!, existing, existing.Quantity + 1).ConfigureAwait(true);
         }
+        else
+        {
+            var updated = await _ctx.Orders.AddProductAsync(_order, product, 1, PendingNote, OrderTarget()).ConfigureAwait(true);
+            _order = updated;
+            if (updated.IsPendingConfirmation)
+            {
+                Info = "Server unreachable: item saved on this terminal (pending confirmation).";
+            }
+        }
+
+        PendingNote = null;
+        RebuildCart();
     }
 
     private async Task ChangeQuantityAsync(CartLineViewModel? line, int delta)
@@ -794,7 +846,7 @@ public sealed class SellViewModel : ScreenViewModel, IScanTarget
         foreach (var name in new[]
         {
             nameof(Order), nameof(HasOrder), nameof(IsPendingConfirmation), nameof(OrderNumberText), nameof(SubtotalText), nameof(DiscountText),
-            nameof(TaxText), nameof(TotalText), nameof(BalanceText), nameof(StatusBanner), nameof(IsBilled), nameof(BillText), nameof(StateChips), nameof(StateChipsText), nameof(HasStateChips), nameof(CanEditLines), nameof(CanDiscount), nameof(CanComp), nameof(CanPriceOverride),
+            nameof(TaxText), nameof(TotalText), nameof(BalanceText), nameof(StatusBanner), nameof(IsBilled), nameof(BillText), nameof(StateChips), nameof(StateChipsText), nameof(HasStateChips), nameof(CanEditLines), nameof(CanDiscount), nameof(CanComp), nameof(CanPriceOverride), nameof(HasLineAdjustmentOptions),
         })
         {
             OnPropertyChanged(name);

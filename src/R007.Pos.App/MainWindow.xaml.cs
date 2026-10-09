@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using R007.Pos.Devices.Input;
 using R007.Pos.ViewModels;
+using R007.Pos.ViewModels.Screens;
 
 namespace R007.Pos.App;
 
@@ -90,6 +91,14 @@ public partial class MainWindow : Window
         {
             box.Text = box.Text[..^prefix.Length];
             box.CaretIndex = box.Text.Length;
+        }
+    }
+
+    private void OnRailItemSelected(object sender, SelectionChangedEventArgs e)
+    {
+        if (_shell.Current is MainViewModel main && Rail.SelectedItem is NavItem item && !ReferenceEquals(item, main.Selected))
+        {
+            main.SelectCommand.Execute(item);
         }
     }
 }

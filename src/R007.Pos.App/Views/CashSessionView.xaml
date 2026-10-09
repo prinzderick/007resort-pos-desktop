@@ -19,12 +19,34 @@
             </StackPanel>
 
             <StackPanel Visibility="{Binding IsOpen, Converter={StaticResource BoolToVis}}">
-                <TextBlock Style="{StaticResource Muted}" Text="Count the drawer and enter what is there. The system figure is shown only after you close (blind count)." />
-                <TextBlock Text="Counted cash" Margin="0,8,0,4" />
-                <TextBox Text="{Binding CountedText, UpdateSourceTrigger=PropertyChanged}" MaxWidth="260" HorizontalAlignment="Left" />
-                <TextBlock Text="Note (optional)" Margin="0,8,0,4" />
+                <TextBlock Style="{StaticResource Muted}" Text="Count the drawer by note. The system figure is shown only after you close (blind count)." />
+                <TextBlock Text="Counted cash" FontWeight="SemiBold" Margin="0,10,0,6" />
+                <ItemsControl ItemsSource="{Binding Denominations}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:DenominationRow}">
+                            <Border Style="{StaticResource Card}" Margin="0,0,10,10">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Left" Text="{Binding Label}" FontWeight="SemiBold" MinWidth="90" />
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding TotalText}" FontWeight="Bold" MinWidth="90" TextAlignment="Right" />
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="-" Style="{StaticResource MiniButton}" MinWidth="36" MinHeight="36" Command="{Binding DecrementCommand}" />
+                                        <TextBlock Text="{Binding Quantity}" FontWeight="Bold" MinWidth="30" TextAlignment="Center" Margin="8,0" />
+                                        <Button Content="+" Style="{StaticResource MiniButton}" MinWidth="36" MinHeight="36" Command="{Binding IncrementCommand}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock FontSize="20" FontWeight="Bold" Margin="0,4,0,0">
+                    <Run Text="Total: " /><Run Text="{Binding CountedText, Mode=OneWay, StringFormat='₦{0}'}" />
+                </TextBlock>
+                <TextBlock Text="Note (optional)" Margin="0,10,0,4" />
                 <TextBox Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" MaxWidth="460" HorizontalAlignment="Left" />
-                <Button Style="{StaticResource DangerButton}" Content="Close cash session" Command="{Binding CloseCommand}" HorizontalAlignment="Left" />
+                <Button Style="{StaticResource DangerButton}" Content="Close cash session" Command="{Binding CloseCommand}" HorizontalAlignment="Left" Margin="0,10,0,0" />
             </StackPanel>
 
             <TextBlock Text="{Binding VarianceText}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource WarnBrush}" TextWrapping="Wrap" Margin="0,12,0,0" />

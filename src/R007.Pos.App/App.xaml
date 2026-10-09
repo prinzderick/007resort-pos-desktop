@@ -7,21 +7,59 @@
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
         <ResourceDictionary>
-            <!-- Palette: dark, high contrast, readable at arm's length on a till -->
-            <Color x:Key="BgColor">#FF15181D</Color>
-            <Color x:Key="PanelColor">#FF20252D</Color>
-            <Color x:Key="PanelAltColor">#FF2A313B</Color>
-            <Color x:Key="AccentColor">#FF2E9E6B</Color>
-            <Color x:Key="DangerColor">#FFC0392B</Color>
-            <Color x:Key="WarnColor">#FFE0A030</Color>
-            <SolidColorBrush x:Key="BgBrush" Color="{StaticResource BgColor}" />
-            <SolidColorBrush x:Key="PanelBrush" Color="{StaticResource PanelColor}" />
-            <SolidColorBrush x:Key="PanelAltBrush" Color="{StaticResource PanelAltColor}" />
+            <!-- Palette + tokens: 007resort-pos-desktop design spec (007-POS-screens-and-spec.pdf), light theme.
+                 Named exactly as the spec's colour-token page; the pre-existing brush keys (BgBrush, PanelBrush, ...)
+                 are kept as aliases so every screen not touched in this pass still picks up the new palette. -->
+            <Color x:Key="GroundColor">#FFF4F1EA</Color>
+            <Color x:Key="SurfaceColor">#FFFFFFFF</Color>
+            <Color x:Key="SubtleColor">#FFF1EEE7</Color>
+            <Color x:Key="FooterColor">#FFFBFAF7</Color>
+            <Color x:Key="BorderColor">#FFDCD7CC</Color>
+            <Color x:Key="HairlineColor">#FFE2DDD2</Color>
+            <Color x:Key="DividerColor">#FFEEEAE1</Color>
+            <Color x:Key="InkColor">#FF1B1B18</Color>
+            <Color x:Key="MutedColor">#FF5E5B53</Color>
+            <Color x:Key="RailActiveColor">#FF34332E</Color>
+            <Color x:Key="RailTextColor">#FFC9C5BB</Color>
+            <Color x:Key="AccentColor">#FF0F6E63</Color>
+            <Color x:Key="AccentTintColor">#FFE6F1EF</Color>
+            <Color x:Key="AccentDeepColor">#FF0A413B</Color>
+            <Color x:Key="SuccessColor">#FF1E8A4C</Color>
+            <Color x:Key="WarningColor">#FF8A4A0B</Color>
+            <Color x:Key="DangerColor">#FF9B2C1F</Color>
+            <Color x:Key="BadgeColor">#FFF2B45A</Color>
+            <Color x:Key="BusyColor">#FFB4520F</Color>
+            <Color x:Key="DangerBorderColor">#FFF0C9C2</Color>
+
+            <SolidColorBrush x:Key="GroundBrush" Color="{StaticResource GroundColor}" />
+            <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+            <SolidColorBrush x:Key="SubtleBrush" Color="{StaticResource SubtleColor}" />
+            <SolidColorBrush x:Key="FooterBrush" Color="{StaticResource FooterColor}" />
+            <SolidColorBrush x:Key="BorderLineBrush" Color="{StaticResource BorderColor}" />
+            <SolidColorBrush x:Key="HairlineBrush" Color="{StaticResource HairlineColor}" />
+            <SolidColorBrush x:Key="DividerBrush" Color="{StaticResource DividerColor}" />
+            <SolidColorBrush x:Key="InkBrush" Color="{StaticResource InkColor}" />
+            <SolidColorBrush x:Key="RailActiveBrush" Color="{StaticResource RailActiveColor}" />
+            <SolidColorBrush x:Key="RailTextBrush" Color="{StaticResource RailTextColor}" />
+            <SolidColorBrush x:Key="AccentTintBrush" Color="{StaticResource AccentTintColor}" />
+            <SolidColorBrush x:Key="AccentDeepBrush" Color="{StaticResource AccentDeepColor}" />
+            <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
+            <SolidColorBrush x:Key="BadgeBrush" Color="{StaticResource BadgeColor}" />
+            <SolidColorBrush x:Key="BusyBrush" Color="{StaticResource BusyColor}" />
+            <SolidColorBrush x:Key="DangerBorderBrush" Color="{StaticResource DangerBorderColor}" />
+
+            <!-- Aliases: same keys the rest of the app already binds to. -->
+            <SolidColorBrush x:Key="BgBrush" Color="{StaticResource GroundColor}" />
+            <SolidColorBrush x:Key="PanelBrush" Color="{StaticResource SurfaceColor}" />
+            <SolidColorBrush x:Key="PanelAltBrush" Color="{StaticResource SubtleColor}" />
             <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
             <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
-            <SolidColorBrush x:Key="WarnBrush" Color="{StaticResource WarnColor}" />
-            <SolidColorBrush x:Key="TextBrush" Color="#FFECEFF4" />
-            <SolidColorBrush x:Key="MutedBrush" Color="#FF9AA4B2" />
+            <SolidColorBrush x:Key="WarnBrush" Color="{StaticResource WarningColor}" />
+            <!-- Login screen's brand panel (accent-container look). -->
+            <SolidColorBrush x:Key="AccentContainerBrush" Color="{StaticResource AccentTintColor}" />
+            <SolidColorBrush x:Key="OnAccentContainerBrush" Color="{StaticResource AccentDeepColor}" />
+            <SolidColorBrush x:Key="TextBrush" Color="{StaticResource InkColor}" />
+            <SolidColorBrush x:Key="MutedBrush" Color="{StaticResource MutedColor}" />
 
             <infra:InverseBooleanToVisibilityConverter x:Key="InvBoolToVis" />
             <infra:NullToVisibilityConverter x:Key="NullToVis" />
@@ -29,14 +67,14 @@
 
             <Style TargetType="TextBlock">
                 <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-                <Setter Property="FontSize" Value="16" />
+                <Setter Property="FontSize" Value="15" />
                 <Setter Property="VerticalAlignment" Value="Center" />
             </Style>
 
             <Style x:Key="Heading" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="24" />
+                <Setter Property="FontSize" Value="22" />
                 <Setter Property="FontWeight" Value="SemiBold" />
-                <Setter Property="Margin" Value="0,0,0,8" />
+                <Setter Property="Margin" Value="0,0,0,6" />
             </Style>
 
             <Style x:Key="Muted" TargetType="TextBlock">
@@ -45,63 +83,117 @@
             </Style>
 
             <Style x:Key="ErrorText" TargetType="TextBlock">
-                <Setter Property="Foreground" Value="#FFFF8A80" />
+                <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
                 <Setter Property="TextWrapping" Value="Wrap" />
                 <Setter Property="FontWeight" Value="SemiBold" />
             </Style>
 
+            <!-- Text input: white fill, 1px Border, 2px Accent ring when focused (spec: money/search inputs must
+                 never blend into the page - a washed-out invisible input was one of the bugs reported live). -->
             <Style TargetType="TextBox">
-                <Setter Property="FontSize" Value="18" />
-                <Setter Property="Padding" Value="10,8" />
-                <Setter Property="MinHeight" Value="44" />
-                <Setter Property="Background" Value="{StaticResource PanelAltBrush}" />
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="Padding" Value="12,8" />
+                <Setter Property="MinHeight" Value="42" />
+                <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
                 <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
                 <Setter Property="CaretBrush" Value="{StaticResource TextBrush}" />
-                <Setter Property="BorderBrush" Value="#FF3A4350" />
+                <Setter Property="BorderBrush" Value="{StaticResource BorderLineBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
                 <Setter Property="VerticalContentAlignment" Value="Center" />
-            </Style>
-
-            <Style TargetType="PasswordBox">
-                <Setter Property="FontSize" Value="18" />
-                <Setter Property="Padding" Value="10,8" />
-                <Setter Property="MinHeight" Value="44" />
-                <Setter Property="Background" Value="{StaticResource PanelAltBrush}" />
-                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-                <Setter Property="BorderBrush" Value="#FF3A4350" />
-            </Style>
-
-            <!-- Touch-sized buttons (>= 48 px) -->
-            <Style TargetType="Button">
-                <Setter Property="MinHeight" Value="48" />
-                <Setter Property="MinWidth" Value="64" />
-                <Setter Property="Padding" Value="14,8" />
-                <Setter Property="Margin" Value="4" />
-                <Setter Property="FontSize" Value="16" />
-                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-                <Setter Property="Background" Value="{StaticResource PanelAltBrush}" />
-                <Setter Property="BorderBrush" Value="#FF3A4350" />
-                <Setter Property="Cursor" Value="Hand" />
                 <Style.Triggers>
-                    <Trigger Property="IsEnabled" Value="False">
-                        <Setter Property="Opacity" Value="0.4" />
+                    <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                        <Setter Property="BorderThickness" Value="2" />
                     </Trigger>
                 </Style.Triggers>
             </Style>
 
+            <Style TargetType="PasswordBox">
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="Padding" Value="12,8" />
+                <Setter Property="MinHeight" Value="42" />
+                <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BorderLineBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Style.Triggers>
+                    <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                        <Setter Property="BorderThickness" Value="2" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Touch-sized buttons (>= 48 px). Fully templated - a bare Style Setter for Background/Foreground is not
+                 enough on a Windows Server box without Desktop Experience: the default ButtonChrome ignores it in the
+                 Disabled (and sometimes MouseOver) visual state and falls back to system-theme chrome, which on a dark
+                 palette renders as a pale, near-illegible box. Owning the whole template keeps every state on-theme. -->
+            <Style TargetType="Button">
+                <Setter Property="MinHeight" Value="40" />
+                <Setter Property="MinWidth" Value="60" />
+                <Setter Property="Padding" Value="12,6" />
+                <Setter Property="Margin" Value="3" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BorderLineBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" SnapsToDevicePixels="True">
+                                <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                   HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                   VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                   RecognizesAccessKey="True" TextElement.Foreground="{TemplateBinding Foreground}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.85" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.7" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.35" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                 <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+                <Setter Property="Foreground" Value="White" />
                 <Setter Property="FontWeight" Value="SemiBold" />
             </Style>
 
             <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                 <Setter Property="Background" Value="{StaticResource DangerBrush}" />
+                <Setter Property="Foreground" Value="White" />
             </Style>
 
+            <!-- No explicit Width: it lives in a UniformGrid (4 columns) and must stretch to fill its cell, not
+                 stay a fixed size with gaps around it. -->
             <Style x:Key="TileButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                <Setter Property="Width" Value="150" />
-                <Setter Property="Height" Value="96" />
-                <Setter Property="Margin" Value="4" />
+                <Setter Property="Height" Value="128" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="Margin" Value="7" />
                 <Setter Property="Background" Value="{StaticResource PanelBrush}" />
+            </Style>
+
+            <!-- Small, low-chrome buttons for secondary per-line actions (cart line: Discount/Comp/Price/Remove) -->
+            <Style x:Key="MiniButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="MinHeight" Value="28" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="Padding" Value="8,3" />
+                <Setter Property="Margin" Value="0,0,4,0" />
+                <Setter Property="FontSize" Value="12" />
             </Style>
 
             <Style TargetType="CheckBox">
@@ -113,6 +205,102 @@
             <Style TargetType="ComboBox">
                 <Setter Property="FontSize" Value="16" />
                 <Setter Property="MinHeight" Value="44" />
+                <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            </Style>
+
+            <Style TargetType="ComboBoxItem">
+                <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+            </Style>
+
+            <!-- Category chip (spec Components): unselected = Border, r22, pad 0/18; selected = Ink fill, white
+                 text. Shared by Sell's category list and any in-screen "tab strip" (e.g. the open-orders picker),
+                 so switching screens - or picking up an order someone else started - reads as the same gesture
+                 everywhere in the app. -->
+            <Style x:Key="TabPillItem" TargetType="ListBoxItem">
+                <Setter Property="Padding" Value="18,10" />
+                <Setter Property="Margin" Value="4,4" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="Bd" Background="{StaticResource SurfaceBrush}" CornerRadius="22" Padding="{TemplateBinding Padding}"
+                                    BorderThickness="1" BorderBrush="{StaticResource BorderLineBrush}">
+                                <ContentPresenter />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource InkBrush}" />
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource InkBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Segmented control (spec Components): track Subtle r12, selected item white r9 + shadow. Used for
+                 the group tabs above Sell's category chips (Food / Drinks / Leisure & Spa / Shop). -->
+            <Style x:Key="SegmentedItem" TargetType="ListBoxItem">
+                <Setter Property="Padding" Value="18,8" />
+                <Setter Property="Margin" Value="2" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="Bd" Background="Transparent" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceBrush}" />
+                                    <Setter TargetName="Bd" Property="Effect">
+                                        <Setter.Value>
+                                            <DropShadowEffect Color="Black" Opacity="0.12" BlurRadius="6" ShadowDepth="1" />
+                                        </Setter.Value>
+                                    </Setter>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="SegmentedTrack" TargetType="ListBox">
+                <Setter Property="Background" Value="{StaticResource SubtleBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="4" />
+                <Setter Property="ItemContainerStyle" Value="{StaticResource SegmentedItem}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBox">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="12" Padding="{TemplateBinding Padding}">
+                                <ItemsPresenter />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Setter Property="ItemsPanel">
+                    <Setter.Value>
+                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Status pill (spec Components): 24-30h r12-15 pad 0 10-12, 12-13/800 text. Semantic colour comes from
+                 the bound status via a DataTrigger where it's used (Paid/Draft/Pending/Voided/Refused all differ). -->
+            <Style x:Key="StatusPill" TargetType="Border">
+                <Setter Property="CornerRadius" Value="13" />
+                <Setter Property="Padding" Value="11,4" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+            </Style>
+
+            <Style x:Key="StatusPillText" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="FontWeight" Value="ExtraBold" />
             </Style>
 
             <Style x:Key="Card" TargetType="Border">
@@ -125,6 +313,35 @@
             <Style TargetType="ListBox">
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderThickness" Value="0" />
+            </Style>
+
+            <!-- Left icon rail (spec Layout): 96 wide, full height, Ink background. Items 80x68 r14 with a 4px gap;
+                 the active item gets a RailActive tile, inactive labels use RailText, the active item's label/icon
+                 go white so they read against the dark rail. -->
+            <Style x:Key="RailItem" TargetType="ListBoxItem">
+                <Setter Property="Width" Value="80" />
+                <Setter Property="Height" Value="68" />
+                <Setter Property="Margin" Value="0,2" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="Bd" Background="Transparent" CornerRadius="14">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource RailActiveBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource RailActiveBrush}" />
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.6" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
             <!-- View model -> view mapping. Which screens exist is decided by the view models (capabilities + permissions). -->
@@ -147,6 +364,7 @@
             <DataTemplate DataType="{x:Type vm:SensitiveActionViewModel}"><views:SensitiveActionView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:CustomerLookupViewModel}"><views:CustomerLookupView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:OpenTabViewModel}"><views:OpenTabView /></DataTemplate>
+            <DataTemplate DataType="{x:Type vm:OpenOrdersViewModel}"><views:OpenOrdersView /></DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

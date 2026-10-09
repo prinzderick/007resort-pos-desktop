@@ -15,6 +15,16 @@ public sealed class OrderWorkflow(IR007ApiClient api, EmergencyQueue emergency, 
 {
     private static PosJsonContext Ctx => PosJsonContext.Default;
 
+    /// <summary>Every order in any of <paramref name="statuses"/>. The contract only documents a single-value
+    /// <c>filter[status]</c> (e.g. cash sessions' <c>filter[status]=OPEN</c>) - a comma-joined list was never
+    /// verified against the real node and silently matched nothing there, which is why "open orders" pickers kept
+    /// showing zero. One request per status instead, merged and de-duplicated by order id.</summary>
+    public async Task<IReadOnlyList<OrderSummary>> ListOpenOrdersAsync(Guid facilityId, IReadOnlyList<string> statuses, Guid? tabId = null, int limit = 100, CancellationToken ct = default)
+    {
+        var pages = await Task.WhenAll(statuses.Select(s => api.ListOrdersAsync(facilityId, s, tabId, null, limit, ct))).ConfigureAwait(false);
+        return [.. pages.SelectMany(p => p.Items).DistinctBy(o => o.Id)];
+    }
+
     public async Task<WorkingOrder> AddProductAsync(WorkingOrder? order, Product product, int quantity, string? notes, OrderTarget target, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(product);

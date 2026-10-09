@@ -4,62 +4,138 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vmroot="clr-namespace:R007.Pos.ViewModels;assembly=R007.Pos.ViewModels"
+        xmlns:vm="clr-namespace:R007.Pos.ViewModels.Screens;assembly=R007.Pos.ViewModels"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vmroot:ShellViewModel}"
         Title="007 Resort &amp; Spa POS"
-        Background="{StaticResource BgBrush}"
+        Background="{StaticResource GroundBrush}"
         WindowState="Maximized"
         MinWidth="1024" MinHeight="700">
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-        <!-- Status bar: who/where, connectivity, emergency queue -->
-        <Border Grid.Row="0" Background="{StaticResource PanelBrush}" Padding="12,6">
-            <DockPanel LastChildFill="False">
-                <TextBlock DockPanel.Dock="Left" Text="007 Resort &amp; Spa POS" FontWeight="Bold" Margin="0,0,16,0" />
-                <TextBlock DockPanel.Dock="Left" Text="{Binding FacilityName}" Foreground="{StaticResource MutedBrush}" Margin="0,0,16,0" />
-                <Border DockPanel.Dock="Left" Background="{StaticResource WarnBrush}" CornerRadius="4" Padding="8,2" Margin="0,0,16,0"
-                        Visibility="{Binding IsDemoMode, Converter={StaticResource BoolToVis}}">
-                    <TextBlock Text="DEMO MODE (mock server)" Foreground="Black" FontWeight="Bold" />
+        <!-- Left icon rail: persistent chrome, not part of the swappable screen, so it survives every navigation. -->
+        <Border Grid.Column="0" Background="{StaticResource InkBrush}" Width="96"
+                Visibility="{Binding IsSignedIn, Converter={StaticResource BoolToVis}}">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Width="52" Height="52" CornerRadius="14" Background="{StaticResource AccentBrush}"
+                        Margin="0,16,0,20" HorizontalAlignment="Center">
+                    <TextBlock Text="007" Foreground="White" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" />
                 </Border>
-                <Button DockPanel.Dock="Right" Content="Sign out" Command="{Binding SignOutCommand}"
-                        Visibility="{Binding IsSignedIn, Converter={StaticResource BoolToVis}}" />
-                <TextBlock DockPanel.Dock="Right" Text="{Binding StaffName}" FontWeight="SemiBold" Margin="12,0" />
-                <Border DockPanel.Dock="Right" Background="{StaticResource DangerBrush}" CornerRadius="10" Padding="10,2" Margin="12,0"
-                        Visibility="{Binding HasCollectionsBadge, Converter={StaticResource BoolToVis}}">
-                    <TextBlock Text="{Binding CollectionsBadgeLabel}" FontWeight="Bold" />
-                </Border>
-                <TextBlock DockPanel.Dock="Right" Text="{Binding PendingText}" Foreground="{StaticResource WarnBrush}" FontWeight="Bold" Margin="12,0"
-                           Visibility="{Binding HasPending, Converter={StaticResource BoolToVis}}" />
-                <TextBlock DockPanel.Dock="Right" Text="{Binding ConnectivityText}" Margin="12,0">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                            <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsOffline}" Value="True">
-                                    <Setter Property="Foreground" Value="#FFFF8A80" />
-                                    <Setter Property="FontWeight" Value="Bold" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                <ListBox x:Name="Rail" ItemsSource="{Binding Current.Items}" SelectedItem="{Binding Current.Selected, Mode=OneWay}"
+                         SelectionChanged="OnRailItemSelected" ItemContainerStyle="{StaticResource RailItem}"
+                         Background="Transparent" BorderThickness="0" HorizontalAlignment="Center"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:NavItem}">
+                            <Grid>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Icon}" FontFamily="Segoe MDL2 Assets" FontSize="20" HorizontalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                <Setter Property="Foreground" Value="{StaticResource RailTextBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
+                                                        <Setter Property="Foreground" Value="White" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Title}" FontSize="10.5" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" Margin="2,5,2,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                <Setter Property="Foreground" Value="{StaticResource RailTextBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
+                                                        <Setter Property="Foreground" Value="White" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                                <Border Background="{StaticResource BadgeBrush}" CornerRadius="10" Padding="6,1" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                        Visibility="{Binding Badge, Converter={StaticResource NullToVis}}">
+                                    <TextBlock Text="{Binding Badge}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource InkBrush}" />
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </DockPanel>
         </Border>
 
-        <Border Grid.Row="1" Background="{StaticResource WarnBrush}" Padding="12,8"
-                Visibility="{Binding HasBanner, Converter={StaticResource BoolToVis}}">
-            <TextBlock Text="{Binding Banner}" Foreground="Black" FontWeight="SemiBold" TextWrapping="Wrap" />
-        </Border>
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <ContentControl Grid.Row="2" Content="{Binding Current}" IsTabStop="False" />
+            <!-- Top bar: 72h, Surface, 1px Hairline bottom. -->
+            <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,0,0,1"
+                    Padding="28,0" Height="72">
+                <DockPanel LastChildFill="False">
+                    <TextBlock DockPanel.Dock="Left" Text="007 Resort &amp; Spa" FontWeight="Bold" FontSize="20" Margin="0,0,16,0" />
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding FacilityName}" Foreground="{StaticResource MutedBrush}" Margin="0,0,16,0" />
+                    <Border DockPanel.Dock="Left" Background="{StaticResource BadgeBrush}" CornerRadius="4" Padding="8,2" Margin="0,0,16,0"
+                            Visibility="{Binding IsDemoMode, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="DEMO MODE (mock server)" Foreground="{StaticResource InkBrush}" FontWeight="Bold" FontSize="13" />
+                    </Border>
+                    <Button DockPanel.Dock="Right" Content="Sign out" Command="{Binding SignOutCommand}"
+                            Visibility="{Binding IsSignedIn, Converter={StaticResource BoolToVis}}" />
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding StaffName}" FontWeight="SemiBold" Margin="12,0" />
+                    <Border DockPanel.Dock="Right" Background="{StaticResource DangerBrush}" CornerRadius="10" Padding="10,2" Margin="12,0"
+                            Visibility="{Binding HasCollectionsBadge, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding CollectionsBadgeLabel}" FontWeight="Bold" Foreground="White" />
+                    </Border>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding PendingText}" Foreground="{StaticResource WarnBrush}" FontWeight="Bold" Margin="12,0"
+                               Visibility="{Binding HasPending, Converter={StaticResource BoolToVis}}" />
+                    <!-- Open orders: a compact pill beside Online, not a separate nav icon - every draft/unsettled
+                         order at this facility, one click away from wherever you are. -->
+                    <Button DockPanel.Dock="Right" Command="{Binding Current.OpenOrdersCommand}" Margin="12,0,0,0" Padding="12,5" MinHeight="0"
+                            Visibility="{Binding IsSignedIn, Converter={StaticResource BoolToVis}}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                <Setter Property="Background" Value="{StaticResource SubtleBrush}" />
+                            </Style>
+                        </Button.Style>
+                        <TextBlock Text="Open orders" FontSize="13" FontWeight="SemiBold" />
+                    </Button>
+                    <Border DockPanel.Dock="Right" Background="{StaticResource AccentTintBrush}" CornerRadius="12" Padding="10,4" Margin="12,0">
+                        <TextBlock Text="{Binding ConnectivityText}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                    <Setter Property="FontSize" Value="13" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsOffline}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+                </DockPanel>
+            </Border>
 
-        <!-- Modal dialogs (payment, supervisor approval, lookup...) -->
-        <Grid Grid.Row="0" Grid.RowSpan="3" Background="#B0000000"
+            <Border Grid.Row="1" Background="{StaticResource BadgeBrush}" Padding="12,8"
+                    Visibility="{Binding HasBanner, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding Banner}" Foreground="{StaticResource InkBrush}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            </Border>
+
+            <ContentControl Grid.Row="2" Content="{Binding Current}" IsTabStop="False"
+                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+        </Grid>
+
+        <!-- Modal dialogs (payment, supervisor approval, lookup...) cover the whole window, rail included. -->
+        <Grid Grid.Column="0" Grid.ColumnSpan="2" Background="#B0000000"
               Visibility="{Binding HasModal, Converter={StaticResource BoolToVis}}">
             <Border Style="{StaticResource Card}" Background="{StaticResource PanelBrush}" MaxWidth="900" MaxHeight="820"
                     HorizontalAlignment="Center" VerticalAlignment="Center" Padding="20">

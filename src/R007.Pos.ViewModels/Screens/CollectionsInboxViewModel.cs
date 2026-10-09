@@ -160,10 +160,13 @@ public sealed class CollectionRow : ObservableObject
 /// </summary>
 public sealed class CollectionsInboxViewModel : ScreenViewModel
 {
+    private const string AllWaiters = "All waiters";
+
     private readonly PosContext _ctx;
     private readonly INavigator _nav;
     private string? _alert;
     private Guid? _lastReceiptId;
+    private string _selectedWaiter = AllWaiters;
 
     public CollectionsInboxViewModel(PosContext ctx, INavigator nav)
     {
@@ -176,9 +179,26 @@ public sealed class CollectionsInboxViewModel : ScreenViewModel
 
     public ObservableCollection<CollectionRow> Items { get; } = [];
 
+    /// <summary>Items narrowed to <see cref="SelectedWaiter"/> (spec: a "Waiter" filter on this screen).</summary>
+    public ObservableCollection<CollectionRow> FilteredItems { get; } = [];
+
+    public ObservableCollection<string> WaiterOptions { get; } = [AllWaiters];
+
+    public string SelectedWaiter
+    {
+        get => _selectedWaiter;
+        set
+        {
+            if (SetProperty(ref _selectedWaiter, value))
+            {
+                ApplyFilter();
+            }
+        }
+    }
+
     public int PendingCount => Items.Count;
 
-    public bool IsEmpty => Items.Count == 0;
+    public bool IsEmpty => FilteredItems.Count == 0;
 
     public string PendingAmountText => MoneyFormat.Display(Items.Sum(i => i.Payment.Amount));
 
@@ -287,9 +307,35 @@ public sealed class CollectionsInboxViewModel : ScreenViewModel
             Items.Add(r);
         }
 
+        var waiters = Items.Select(i => i.WaiterText).Distinct().OrderBy(w => w, StringComparer.OrdinalIgnoreCase).ToList();
+        WaiterOptions.Clear();
+        WaiterOptions.Add(AllWaiters);
+        foreach (var w in waiters)
+        {
+            WaiterOptions.Add(w);
+        }
+
+        if (!WaiterOptions.Contains(SelectedWaiter))
+        {
+            _selectedWaiter = AllWaiters;
+            OnPropertyChanged(nameof(SelectedWaiter));
+        }
+
+        ApplyFilter();
+
         OnPropertyChanged(nameof(PendingCount));
-        OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(PendingAmountText));
+    }
+
+    private void ApplyFilter()
+    {
+        FilteredItems.Clear();
+        foreach (var r in Items.Where(r => SelectedWaiter == AllWaiters || r.WaiterText == SelectedWaiter))
+        {
+            FilteredItems.Add(r);
+        }
+
+        OnPropertyChanged(nameof(IsEmpty));
     }
 
     private async Task<Order?> TryGetOrderAsync(Guid id)

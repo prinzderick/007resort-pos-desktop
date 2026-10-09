@@ -4,48 +4,95 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:R007.Pos.ViewModels.Screens;assembly=R007.Pos.ViewModels"
-             xmlns:api="clr-namespace:R007.Pos.Core.Api;assembly=R007.Pos.Core"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:ApprovalsInboxViewModel}">
+    <!-- List + detail (spec: "split into list and detail"); the detail shows what the server gave us - this node
+         doesn't carry a full before/after order breakdown on the approval record itself, only Summary/Reason/Amount. -->
     <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-        <DockPanel>
-            <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshCommand}" />
-            <TextBlock Style="{StaticResource Heading}" Text="Approvals waiting for a decision" />
-        </DockPanel>
-        <StackPanel Grid.Row="1" Margin="0,0,0,8">
-            <TextBlock Style="{StaticResource Muted}" Text="Optional note recorded with your decision" />
-            <TextBox Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" MaxWidth="500" HorizontalAlignment="Left" />
-            <TextBlock Style="{StaticResource ErrorText}" Text="{Binding Error}" Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
-            <TextBlock Style="{StaticResource Muted}" Text="{Binding Info}" Visibility="{Binding HasInfo, Converter={StaticResource BoolToVis}}" />
-        </StackPanel>
-        <ListBox Grid.Row="2" ItemsSource="{Binding Pending}" HorizontalContentAlignment="Stretch">
-            <ListBox.ItemTemplate>
-                <DataTemplate DataType="{x:Type vm:ApprovalRow}">
-                    <Border Style="{StaticResource Card}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock Text="{Binding Summary}" FontSize="18" FontWeight="Bold" TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding RequestedBy}" Style="{StaticResource Muted}" />
-                                <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding AmountText}" Foreground="{StaticResource WarnBrush}" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                <Button Style="{StaticResource PrimaryButton}" Content="Approve" Command="{Binding ApproveCommand}" MinWidth="110" />
-                                <Button Style="{StaticResource DangerButton}" Content="Reject" Command="{Binding RejectCommand}" MinWidth="110" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="380" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <DockPanel Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshCommand}" />
+                <TextBlock Style="{StaticResource Heading}" Text="{Binding PendingCount, StringFormat='Pending · {0}'}" />
+            </DockPanel>
+            <TextBlock Grid.Row="1" Style="{StaticResource Muted}" Foreground="{StaticResource SuccessBrush}" Text="{Binding Info}" Margin="0,0,0,8"
+                       Visibility="{Binding HasInfo, Converter={StaticResource BoolToVis}}" />
+            <ListBox Grid.Row="2" ItemsSource="{Binding Pending}" SelectedItem="{Binding Selected}" HorizontalContentAlignment="Stretch">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0,0,0,8" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border x:Name="Bd" Background="{StaticResource SurfaceBrush}" CornerRadius="10" Padding="14" BorderThickness="2" BorderBrush="Transparent">
+                                        <ContentPresenter />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentTintBrush}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:ApprovalRow}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Summary}" FontWeight="Bold" FontSize="15" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding RequestedBy}" Style="{StaticResource Muted}" FontSize="12" />
+                            <TextBlock Text="{Binding AmountText}" Foreground="{StaticResource WarnBrush}" FontWeight="SemiBold" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+
+        <Border Grid.Column="1" Style="{StaticResource Card}" Margin="10,0,0,0" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVis}}">
+            <StackPanel DataContext="{Binding Selected}" Margin="10">
+                <Border Background="{StaticResource SubtleBrush}" CornerRadius="13" Padding="11,4" HorizontalAlignment="Left">
+                    <TextBlock Text="PENDING" FontSize="12" FontWeight="ExtraBold" Foreground="{StaticResource MutedBrush}" />
+                </Border>
+                <TextBlock Text="{Binding Summary}" FontSize="22" FontWeight="Bold" TextWrapping="Wrap" Margin="0,10,0,0" />
+                <TextBlock Text="{Binding RequestedBy}" Style="{StaticResource Muted}" Margin="0,2,0,0" />
+
+                <Border Background="{StaticResource SubtleBrush}" CornerRadius="10" Padding="14" Margin="0,16,0,0" Visibility="{Binding Reason, Converter={StaticResource NullToVis}}">
+                    <StackPanel>
+                        <TextBlock Text="REASON GIVEN" FontSize="11" FontWeight="ExtraBold" Foreground="{StaticResource MutedBrush}" />
+                        <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <Border BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,1,0,0" Margin="0,20,0,0" Padding="0,16,0,0">
+                    <TextBlock FontSize="26" FontWeight="Bold" Text="{Binding AmountText}" Foreground="{StaticResource WarnBrush}" />
+                </Border>
+
+                <TextBlock Text="Note (optional, recorded with your decision)" Style="{StaticResource Muted}" Margin="0,20,0,4" />
+                <TextBox Text="{Binding DataContext.Note, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}" MaxWidth="500" HorizontalAlignment="Left" />
+                <TextBlock Style="{StaticResource ErrorText}" Text="{Binding DataContext.Error, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,10,0,0"
+                           Visibility="{Binding DataContext.HasError, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                    <Button Style="{StaticResource DangerButton}" Content="Decline" Command="{Binding RejectCommand}" MinWidth="130" MinHeight="52" />
+                    <Button Style="{StaticResource PrimaryButton}" Content="Approve" Command="{Binding ApproveCommand}" MinWidth="150" MinHeight="52" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Column="1" Margin="10,0,0,0" Visibility="{Binding HasSelection, Converter={StaticResource InvBoolToVis}}">
+            <TextBlock Text="Nothing waiting for a decision." Style="{StaticResource Muted}" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
     </Grid>
 </UserControl>
