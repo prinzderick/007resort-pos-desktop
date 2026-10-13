@@ -215,6 +215,13 @@ public sealed class R007ApiClient(HttpClient httpClient) : IR007ApiClient
     public Task<Receipt> GetOrderReceiptAsync(Guid orderId, CancellationToken cancellationToken = default) =>
         GetAsync($"api/v1/orders/{Id(orderId)}/receipt", Ctx.Receipt, cancellationToken);
 
+    // Receipt print queue -----------------------------------------------------------------------------------
+    public Task<IReadOnlyList<PrintJob>> ListQueuedPrintJobsAsync(Guid facilityId, CancellationToken cancellationToken = default) =>
+        GetAllAsync($"api/v1/print-jobs?facilityId={Id(facilityId)}&status=QUEUED&limit=50", Ctx.PagePrintJob, cancellationToken);
+
+    public async Task MarkPrintJobPrintedAsync(Guid jobId, string idempotencyKey, CancellationToken cancellationToken = default) =>
+        _ = await SendNoBodyAsync(HttpMethod.Post, $"api/v1/print-jobs/{Id(jobId)}/printed", Ctx.PrintJob, idempotencyKey, null, cancellationToken).ConfigureAwait(false);
+
     // Bills & waiter collections ----------------------------------------------------------------------------
     public Task<BillResult> PrintBillAsync(Guid orderId, BillRequest request, string idempotencyKey, string? stepUpToken = null, CancellationToken cancellationToken = default) =>
         SendAsync(HttpMethod.Post, $"api/v1/orders/{Id(orderId)}/bill", request, Ctx.BillRequest, Ctx.BillResult, idempotencyKey, stepUpToken, cancellationToken: cancellationToken);

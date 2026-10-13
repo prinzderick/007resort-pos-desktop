@@ -34,6 +34,7 @@ public sealed class ShellViewModel : ObservableObject, INavigator
     private DateTimeOffset _lastActivity;
     private string? _banner;
     private CancellationTokenSource? _realtime;
+    private CancellationTokenSource? _printQueue;
 
     public ShellViewModel(PosContext ctx, INfcReader? nfc = null, IBarcodeScanner? scanner = null, Func<TimeSpan, CancellationToken, Task>? delay = null)
     {
@@ -231,6 +232,8 @@ public sealed class ShellViewModel : ObservableObject, INavigator
                 _realtime = new CancellationTokenSource();
                 _ = _ctx.Realtime.RunAsync(info, identity.DeviceId, _realtime.Token, [$"private-facility.{identity.FacilityUnitId:D}.orders"]);
             }
+
+            StartPrintQueue();
         }
         catch (Exception ex) when (ex is ApiException or ApiUnavailableException)
         {
@@ -242,6 +245,37 @@ public sealed class ShellViewModel : ObservableObject, INavigator
     {
         _realtime?.Cancel();
         _realtime = null;
+        _printQueue?.Cancel();
+        _printQueue = null;
+    }
+
+    /// <summary>Waiter-only flow: print receipts that tablets queued for this facility (polls while someone is signed in).</summary>
+    private void StartPrintQueue()
+    {
+        if (_ctx.Identity is not { } identity)
+        {
+            return;
+        }
+
+        _printQueue?.Cancel();
+        _printQueue = new CancellationTokenSource();
+        var coordinator = new Services.PrintQueueCoordinator(
+            new Services.ApiPrintJobSource(_ctx.Api, () => identity.FacilityUnitId),
+            async (receiptId, copies, ct) =>
+            {
+                for (var i = 0; i < copies; i++)
+                {
+                    var r = await _ctx.Printing.PrintReceiptAsync(receiptId, reprint: false, ct: ct).ConfigureAwait(false);
+                    if (!r.Printed)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            },
+            _delay);
+        _ = coordinator.RunAsync(_printQueue.Token);
     }
 
     private void OnRealtime(RealtimeEvent ev)

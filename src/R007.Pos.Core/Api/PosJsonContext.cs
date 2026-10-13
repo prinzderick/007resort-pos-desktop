@@ -26,6 +26,8 @@ namespace R007.Pos.Core.Api;
 [JsonSerializable(typeof(Facility))]
 [JsonSerializable(typeof(FacilityCapabilities))]
 [JsonSerializable(typeof(Page<Category>))]
+[JsonSerializable(typeof(PrintJob))]
+[JsonSerializable(typeof(Page<PrintJob>))]
 [JsonSerializable(typeof(Page<Product>))]
 [JsonSerializable(typeof(Page<DiningTable>))]
 [JsonSerializable(typeof(DiningTable))]

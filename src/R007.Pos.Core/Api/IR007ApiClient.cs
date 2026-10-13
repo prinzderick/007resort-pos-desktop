@@ -104,6 +104,12 @@ public interface IR007ApiClient
 
     Task<Receipt> GetOrderReceiptAsync(Guid orderId, CancellationToken cancellationToken = default);
 
+    /// <summary>Receipts a tablet asked to print at this facility (waiter-only flow). Needs <c>receipt.print</c> or <c>receipt.reprint</c>.</summary>
+    Task<IReadOnlyList<PrintJob>> ListQueuedPrintJobsAsync(Guid facilityId, CancellationToken cancellationToken = default);
+
+    /// <summary>Tells the server the job was printed here so no other terminal prints it again.</summary>
+    Task MarkPrintJobPrintedAsync(Guid jobId, string idempotencyKey, CancellationToken cancellationToken = default);
+
     // Bills & waiter collections (cashier / supervisor side) --------------------------------------------------
     /// <summary>Prints (or reprints) the pre-bill and freezes the order. Needs <c>bill.print</c>; a reprint after a cancelled bill needs a supervisor (step-up token).</summary>
     Task<BillResult> PrintBillAsync(Guid orderId, BillRequest request, string idempotencyKey, string? stepUpToken = null, CancellationToken cancellationToken = default);
