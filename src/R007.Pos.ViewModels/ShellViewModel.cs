@@ -273,8 +273,7 @@ public sealed class ShellViewModel : ObservableObject, INavigator
                 }
 
                 return true;
-            },
-            _delay);
+            });
         _ = coordinator.RunAsync(_printQueue.Token);
     }
 

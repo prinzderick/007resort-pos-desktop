@@ -81,6 +81,18 @@ public sealed class PrintQueueCoordinator(IPrintJobSource source, Func<Guid, int
             {
                 return;
             }
+            catch (Exception)
+            {
+                // The poller must never take the till down; wait and try again.
+                try
+                {
+                    await _delay(Interval, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
         }
     }
 }
