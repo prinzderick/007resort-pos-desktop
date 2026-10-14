@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using R007.Pos.Core;
 using R007.Pos.Core.Api;
 using System.Text.Json;
 using R007.Pos.Core.Http;
@@ -33,6 +34,7 @@ public sealed class ShellViewModel : ObservableObject, INavigator
     private DateTimeOffset _lastActivity;
     private string? _banner;
     private CancellationTokenSource? _realtime;
+    private CancellationTokenSource? _printQueue;
 
     public ShellViewModel(PosContext ctx, INfcReader? nfc = null, IBarcodeScanner? scanner = null, Func<TimeSpan, CancellationToken, Task>? delay = null)
     {
@@ -75,7 +77,13 @@ public sealed class ShellViewModel : ObservableObject, INavigator
     public ScreenViewModel? Current
     {
         get => _current;
-        private set => SetProperty(ref _current, value);
+        private set
+        {
+            if (SetProperty(ref _current, value))
+            {
+                OnPropertyChanged(nameof(Main));
+            }
+        }
     }
 
     public ObservableCollection<ModalViewModel> Modals { get; } = [];
@@ -224,6 +232,8 @@ public sealed class ShellViewModel : ObservableObject, INavigator
                 _realtime = new CancellationTokenSource();
                 _ = _ctx.Realtime.RunAsync(info, identity.DeviceId, _realtime.Token, [$"private-facility.{identity.FacilityUnitId:D}.orders"]);
             }
+
+            StartPrintQueue();
         }
         catch (Exception ex) when (ex is ApiException or ApiUnavailableException)
         {
@@ -235,6 +245,36 @@ public sealed class ShellViewModel : ObservableObject, INavigator
     {
         _realtime?.Cancel();
         _realtime = null;
+        _printQueue?.Cancel();
+        _printQueue = null;
+    }
+
+    /// <summary>Waiter-only flow: print receipts that tablets queued for this facility (polls while someone is signed in).</summary>
+    private void StartPrintQueue()
+    {
+        if (_ctx.Identity is not { } identity)
+        {
+            return;
+        }
+
+        _printQueue?.Cancel();
+        _printQueue = new CancellationTokenSource();
+        var coordinator = new Services.PrintQueueCoordinator(
+            new Services.ApiPrintJobSource(_ctx.Api, () => identity.FacilityUnitId),
+            async (receiptId, copies, ct) =>
+            {
+                for (var i = 0; i < copies; i++)
+                {
+                    var r = await _ctx.Printing.PrintReceiptAsync(receiptId, reprint: false, ct: ct).ConfigureAwait(false);
+                    if (!r.Printed)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+        _ = coordinator.RunAsync(_printQueue.Token);
     }
 
     private void OnRealtime(RealtimeEvent ev)
@@ -319,6 +359,59 @@ public sealed class ShellViewModel : ObservableObject, INavigator
         NotifyModals();
         await _ctx.SignOutAsync().ConfigureAwait(true);
         ShowLogin();
+    }
+
+    /// <summary>The hidden Connection dialog (click the title 7 times): choose the property server or the online server.</summary>
+    public async Task OpenConnectionAsync()
+    {
+        if (Modals.Any(m => m is ConnectionViewModel))
+        {
+            return;
+        }
+
+        var dialog = new ConnectionViewModel(_ctx);
+        await ShowModalAsync(dialog).ConfigureAwait(true);
+        if (dialog.Chosen is { } server)
+        {
+            await SwitchServerAsync(server).ConfigureAwait(true);
+        }
+    }
+
+    /// <summary>
+    /// Moves the terminal to another server, then lands on the right screen: sign-in when that server already knows this
+    /// terminal, setup (with the address filled in) when it does not. If the switch cannot happen the terminal stays on the
+    /// server it was on and says why.
+    /// </summary>
+    public async Task SwitchServerAsync(Uri target)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        var waiting = await _ctx.Queue.CountPendingAsync().ConfigureAwait(true);
+        if (waiting > 0)
+        {
+            // Nothing has been touched: stay signed in where we are.
+            Banner = $"{waiting} item(s) are still waiting to be confirmed. Let them send, then switch server.";
+            return;
+        }
+
+        StopRealtime();
+        Modals.Clear();
+        NotifyModals();
+        string? failure = null;
+        try
+        {
+            await _ctx.SwitchServerAsync(target).ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is ApiException or ApiUnavailableException or OperatorException)
+        {
+            failure = ex is OperatorException ? ex.Message : $"Could not switch to {target.Host}: {ScreenViewModel.Describe(ex)} Still on the previous server; sign in again.";
+        }
+
+        Banner = null;
+        await StartAsync().ConfigureAwait(true);
+        if (failure is not null)
+        {
+            Banner = failure;
+        }
     }
 
     /// <summary>Call on any user input so the idle lock does not fire.</summary>

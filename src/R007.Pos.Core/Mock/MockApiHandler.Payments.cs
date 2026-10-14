@@ -371,7 +371,7 @@ public sealed partial class MockApiHandler
             $"R-{(++_receiptSeq).ToString(CultureInfo.InvariantCulture)}",
             facilityId,
             MockData.FacilityName(facilityId),
-            "007 Resort & Spa",
+            "SERI Resort",
             "Site address (mock)",
             Now,
             caller.Staff.Display,
@@ -388,7 +388,7 @@ public sealed partial class MockApiHandler
             null,
             null,
             0,
-            "Thank you for choosing 007 Resort & Spa");
+            "Thank you for choosing SERI Resort");
         _receipts[receipt.Id] = receipt;
         foreach (var o in orders)
         {

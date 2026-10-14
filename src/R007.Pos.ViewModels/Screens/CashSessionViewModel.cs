@@ -6,6 +6,52 @@ using R007.Pos.ViewModels.Infrastructure;
 
 namespace R007.Pos.ViewModels.Screens;
 
+/// <summary>One note/coin denomination in the blind-count grid (spec: "count the drawer by note"). Purely a client-side
+/// input aid - the server only ever sees the summed total, same as before.</summary>
+public sealed class DenominationRow : ObservableObject
+{
+    private readonly decimal _denomination;
+    private readonly CashSessionViewModel _owner;
+    private int _quantity;
+
+    public DenominationRow(decimal denomination, CashSessionViewModel owner)
+    {
+        _denomination = denomination;
+        _owner = owner;
+        IncrementCommand = new RelayCommand(() => Quantity++);
+        DecrementCommand = new RelayCommand(() => Quantity--);
+    }
+
+    public string Label => MoneyFormat.Display(_denomination);
+
+    public int Quantity
+    {
+        get => _quantity;
+        set
+        {
+            if (value < 0)
+            {
+                value = 0;
+            }
+
+            if (SetProperty(ref _quantity, value))
+            {
+                OnPropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(TotalText));
+                _owner.RecountFromDenominations();
+            }
+        }
+    }
+
+    public decimal Total => _denomination * _quantity;
+
+    public string TotalText => MoneyFormat.Display(Total);
+
+    public RelayCommand IncrementCommand { get; }
+
+    public RelayCommand DecrementCommand { get; }
+}
+
 /// <summary>
 /// Cash session (till) open/close and shift report. Closing is a <b>blind count</b>: the cashier declares the counted
 /// cash without seeing the system's expected figure; the API then returns expected cash and variance, and the shift
@@ -21,6 +67,8 @@ public sealed class CashSessionViewModel : ScreenViewModel
     private CashSession? _lastClosed;
     private IReadOnlyList<string>? _summary;
 
+    private static readonly decimal[] NoteValues = [1000m, 500m, 200m, 100m, 50m, 20m, 10m, 5m];
+
     public CashSessionViewModel(PosContext ctx)
     {
         _ctx = ctx;
@@ -28,6 +76,11 @@ public sealed class CashSessionViewModel : ScreenViewModel
         CloseCommand = new AsyncRelayCommand(CloseAsync, () => _ctx.HasOpenCashSession, SetError);
         ReportCommand = new AsyncRelayCommand(ReportAsync, () => (_ctx.CashSession ?? _lastClosed) is not null && _ctx.Features.CanViewShiftReport, SetError);
         PrintReportCommand = new AsyncRelayCommand(PrintReportAsync, () => _report is not null || _summary is not null, SetError);
+        foreach (var v in NoteValues)
+        {
+            Denominations.Add(new DenominationRow(v, this));
+        }
+
         _ctx.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(PosContext.CashSession))
@@ -36,6 +89,10 @@ public sealed class CashSessionViewModel : ScreenViewModel
             }
         };
     }
+
+    public ObservableCollection<DenominationRow> Denominations { get; } = [];
+
+    internal void RecountFromDenominations() => CountedText = Denominations.Sum(d => d.Total).ToString("0.00");
 
     public ObservableCollection<string> ReportLines { get; } = [];
 

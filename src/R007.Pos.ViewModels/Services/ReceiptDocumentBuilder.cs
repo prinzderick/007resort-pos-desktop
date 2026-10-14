@@ -28,7 +28,7 @@ public static class ReceiptDocumentBuilder
             Center("*** DUPLICATE ***", bold: true);
         }
 
-        Center(r.SiteName ?? r.BusinessName ?? "007 Resort & Spa", bold: true, big: true);
+        Center(r.SiteName ?? r.BusinessName ?? "SERI Resort", bold: true, big: true);
         if (!string.IsNullOrWhiteSpace(r.BusinessName) && !string.Equals(r.SiteName, r.BusinessName, StringComparison.Ordinal))
         {
             Center(r.BusinessName); // the legal/business name printed under the site title (may be long: normal size, wraps)

@@ -15,7 +15,13 @@
         <DockPanel>
             <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshCommand}" />
             <Button DockPanel.Dock="Right" Content="Reprint last receipt" Command="{Binding ReprintReceiptCommand}" />
-            <TextBlock DockPanel.Dock="Right" Text="{Binding PendingAmountText}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource WarnBrush}" Margin="12,0" />
+            <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding WaiterOptions}" SelectedItem="{Binding SelectedWaiter}" MinWidth="160" Margin="12,0" />
+            <Border DockPanel.Dock="Right" Background="{StaticResource AccentTintBrush}" CornerRadius="12" Padding="12,6" Margin="12,0">
+                <StackPanel>
+                    <TextBlock Text="AWAITING CONFIRMATION" FontSize="10" FontWeight="ExtraBold" Foreground="{StaticResource AccentDeepBrush}" />
+                    <TextBlock Text="{Binding PendingAmountText}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource AccentDeepBrush}" />
+                </StackPanel>
+            </Border>
             <TextBlock Style="{StaticResource Heading}" Text="Collected by waiters - waiting for your confirmation" />
         </DockPanel>
         <StackPanel Grid.Row="1" Margin="0,0,0,8">
@@ -23,14 +29,14 @@
             <Border Background="{StaticResource DangerBrush}" CornerRadius="6" Padding="10,6" Margin="0,6,0,0" Visibility="{Binding HasAlert, Converter={StaticResource BoolToVis}}">
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissAlertCommand}" MinHeight="36" />
-                    <TextBlock Text="{Binding Alert}" FontWeight="Bold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Alert}" FontWeight="Bold" TextWrapping="Wrap" Foreground="White" />
                 </DockPanel>
             </Border>
             <TextBlock Style="{StaticResource ErrorText}" Text="{Binding Error}" Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
             <TextBlock Style="{StaticResource Muted}" Text="{Binding Info}" Visibility="{Binding HasInfo, Converter={StaticResource BoolToVis}}" />
             <TextBlock Style="{StaticResource Muted}" Text="Nothing is waiting for confirmation." FontSize="18" Margin="0,16,0,0" Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}" />
         </StackPanel>
-        <ListBox Grid.Row="2" ItemsSource="{Binding Items}" HorizontalContentAlignment="Stretch">
+        <ListBox Grid.Row="2" ItemsSource="{Binding FilteredItems}" HorizontalContentAlignment="Stretch">
             <ListBox.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:CollectionRow}">
                     <Border Style="{StaticResource Card}">
@@ -59,11 +65,11 @@
                                                     <Setter Property="Foreground" Value="{StaticResource WarnBrush}" />
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding LevelName}" Value="Critical">
-                                                    <Setter Property="Foreground" Value="#FFFF8A80" />
+                                                    <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
                                                     <Setter Property="FontWeight" Value="Bold" />
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding LevelName}" Value="Expired">
-                                                    <Setter Property="Foreground" Value="#FFFF5252" />
+                                                    <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
                                                     <Setter Property="FontWeight" Value="Bold" />
                                                 </DataTrigger>
                                             </Style.Triggers>

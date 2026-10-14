@@ -7,14 +7,17 @@
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:SellViewModel}"
              Loaded="OnLoaded">
+    <!-- Layout per 007-POS-screens-and-spec.pdf: catalogue (flexible) + order panel. Inside the catalogue:
+         search/scan row, then category chips - one scrolling row - then a real 4-column item grid. The spec's
+         "group tabs" tier (Food/Drinks/Leisure & Spa/Shop above the category chips) needs a category->group
+         mapping the catalog API doesn't currently expose, so it's deferred. -->
     <Grid Margin="6">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="460" />
+            <ColumnDefinition Width="340" />
         </Grid.ColumnDefinitions>
 
-        <!-- Left: category tabs, search / scan, touch grid -->
-        <Grid Grid.Column="0">
+        <Grid Grid.Column="0" Margin="6">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -22,55 +25,81 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <ItemsControl Grid.Row="0" ItemsSource="{Binding Categories}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type vm:CategoryChip}">
-                        <Button Content="{Binding Name}" MinWidth="110"
-                                Command="{Binding DataContext.SelectCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                CommandParameter="{Binding}" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-
-            <Grid Grid.Row="1" Margin="4,4,4,0">
+            <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                    <TextBlock Style="{StaticResource Muted}" Text="Search items" />
-                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Margin="4,0,0,0" Visibility="{Binding ShowBarcodeBox, Converter={StaticResource BoolToVis}}">
-                    <TextBlock Style="{StaticResource Muted}" Text="Scan barcode / SKU (then Enter)" />
-                    <TextBox x:Name="ScanBox" Text="{Binding ScanText, UpdateSourceTrigger=PropertyChanged}">
-                        <TextBox.InputBindings>
-                            <KeyBinding Key="Return" Command="{Binding ScanCommand}" />
-                        </TextBox.InputBindings>
-                    </TextBox>
-                </StackPanel>
+                <TextBox Grid.Column="0" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                            <Style.Triggers>
+                                <Trigger Property="Text" Value="">
+                                    <Setter Property="Background">
+                                        <Setter.Value>
+                                            <VisualBrush AlignmentX="Left" AlignmentY="Center" Stretch="None">
+                                                <VisualBrush.Visual>
+                                                    <TextBlock Text="Search all items or scan a barcode" Foreground="{StaticResource MutedBrush}" Margin="14,0" FontSize="16" />
+                                                </VisualBrush.Visual>
+                                            </VisualBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+                <TextBox x:Name="ScanBox" Grid.Column="1" Width="180" Text="{Binding ScanText, UpdateSourceTrigger=PropertyChanged}"
+                         Visibility="{Binding ShowBarcodeBox, Converter={StaticResource BoolToVis}}">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Return" Command="{Binding ScanCommand}" />
+                    </TextBox.InputBindings>
+                </TextBox>
             </Grid>
 
-            <ItemsControl Grid.Row="2" ItemsSource="{Binding QuickNotes}" Margin="4,6,4,0">
+            <!-- Category chips: one scrolling row (spec Layout). -->
+            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,10,0,0">
+                <ListBox ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}"
+                         ItemContainerStyle="{StaticResource TabPillItem}" Background="Transparent" BorderThickness="0">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:CategoryChip}">
+                            <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
+                                                <Setter Property="Foreground" Value="White" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </ScrollViewer>
+
+            <ItemsControl Grid.Row="2" ItemsSource="{Binding QuickNotes}" Margin="0,8,0,0">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Button Content="{Binding}" MinHeight="36" FontSize="13"
+                        <Button Content="{Binding}" Style="{StaticResource MiniButton}" MinHeight="32"
                                 Command="{Binding DataContext.ToggleNoteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}" />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,6,0,0">
+            <!-- Item grid: always exactly 4 columns (UniformGrid, not a width-dependent WrapPanel), 128 high cards. -->
+            <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
                 <ItemsControl ItemsSource="{Binding VisibleProducts}">
                     <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        <ItemsPanelTemplate><UniformGrid Columns="4" /></ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:ProductTile}">
@@ -89,12 +118,13 @@
         </Grid>
 
         <!-- Right: cart (every figure is the server's) -->
-        <Border Grid.Column="1" Style="{StaticResource Card}">
+        <Border Grid.Column="1" Style="{StaticResource Card}" Margin="3,6,6,6">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
@@ -108,25 +138,6 @@
                                Visibility="{Binding HasStateChips, Converter={StaticResource BoolToVis}}" />
                     <TextBlock Text="{Binding BillText}" Style="{StaticResource Muted}" Visibility="{Binding IsBilled, Converter={StaticResource BoolToVis}}" />
                     <TextBlock Text="{Binding StatusBanner}" Foreground="{StaticResource WarnBrush}" FontWeight="Bold" TextWrapping="Wrap" Margin="0,4,0,0" />
-                    <StackPanel Visibility="{Binding HasOpenOrders, Converter={StaticResource BoolToVis}}" Margin="0,6,0,0">
-                        <TextBlock Text="Open orders here (tap to load)" Style="{StaticResource Muted}" />
-                        <ItemsControl ItemsSource="{Binding OpenOrders}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type vm:OpenOrderRow}">
-                                    <Button HorizontalContentAlignment="Stretch" MinHeight="40" FontSize="14"
-                                            Command="{Binding DataContext.SelectOpenOrderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                                            <TextBlock Text="{Binding StatusText}" Style="{StaticResource Muted}" />
-                                            <TextBlock Text="{Binding ChipsText}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource WarnBrush}"
-                                                       Visibility="{Binding HasChips, Converter={StaticResource BoolToVis}}" />
-                                        </StackPanel>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
                 </StackPanel>
 
                 <StackPanel Grid.Row="1">
@@ -136,71 +147,103 @@
                                Visibility="{Binding HasInfo, Converter={StaticResource BoolToVis}}" />
                 </StackPanel>
 
+                <!-- One cart line = two rows: name + total, then the qty stepper and secondary actions. Compact so
+                     a full order stays scannable at a glance instead of each line pushing the next one out of view. -->
                 <ListBox Grid.Row="2" ItemsSource="{Binding Lines}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:CartLineViewModel}">
-                            <Border BorderBrush="#FF3A4350" BorderThickness="0,0,0,1" Padding="0,6">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                        <TextBlock Text="{Binding Notes}" Style="{StaticResource Muted}" Visibility="{Binding HasNotes, Converter={StaticResource BoolToVis}}" />
-                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                            <Button Content="-" MinWidth="44" MinHeight="40"
-                                                    Command="{Binding DataContext.DecrementCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                    Visibility="{Binding DataContext.CanEditLines, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
-                                            <TextBlock Text="{Binding Quantity}" FontSize="18" FontWeight="Bold" Margin="8,0" MinWidth="24" TextAlignment="Center" />
-                                            <Button Content="+" MinWidth="44" MinHeight="40"
-                                                    Command="{Binding DataContext.IncrementCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                    Visibility="{Binding DataContext.CanEditLines, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
-                                            <TextBlock Text="{Binding UnitPriceText}" Style="{StaticResource Muted}" Margin="10,0,0,0" />
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Button Content="Discount" MinHeight="36" FontSize="13"
-                                                    Command="{Binding DataContext.DiscountCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                    Visibility="{Binding DataContext.CanDiscount, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
-                                            <Button Content="Comp" MinHeight="36" FontSize="13"
-                                                    Command="{Binding DataContext.CompCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                    Visibility="{Binding DataContext.CanComp, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
-                                            <Button Content="Price" MinHeight="36" FontSize="13"
-                                                    Command="{Binding DataContext.PriceOverrideCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                    Visibility="{Binding DataContext.CanPriceOverride, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
-                                        </StackPanel>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" HorizontalAlignment="Right">
-                                        <TextBlock Text="{Binding LineTotalText}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Right" />
-                                        <Button Content="Remove" MinHeight="36" FontSize="13" Style="{StaticResource DangerButton}"
+                            <Border BorderBrush="{StaticResource DividerBrush}" BorderThickness="0,0,0,1" Padding="0,5">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding LineTotalText}" FontSize="13.5" FontWeight="Bold" Margin="6,0,0,0" />
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap" />
+                                    </DockPanel>
+                                    <TextBlock Text="{Binding Notes}" Style="{StaticResource Muted}" FontSize="11" Visibility="{Binding HasNotes, Converter={StaticResource BoolToVis}}" />
+
+                                    <!-- Everything below the name/total lives in one row: qty stepper and price on the
+                                         left, Remove and the collapsed adjustments toggle on the right - two rows per
+                                         item total instead of three. -->
+                                    <DockPanel Margin="0,2,0,0">
+                                        <Button DockPanel.Dock="Left" Content="-" Style="{StaticResource MiniButton}" MinWidth="20" MinHeight="20" Padding="0" FontSize="11" Margin="0"
+                                                Command="{Binding DataContext.DecrementCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                Visibility="{Binding DataContext.CanEditLines, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
+                                        <TextBlock DockPanel.Dock="Left" Text="{Binding Quantity}" FontSize="11" FontWeight="Bold" Margin="4,0" MinWidth="12" TextAlignment="Center"
+                                                   Visibility="{Binding DataContext.CanEditLines, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
+                                        <Button DockPanel.Dock="Left" Content="+" Style="{StaticResource MiniButton}" MinWidth="20" MinHeight="20" Padding="0" FontSize="11" Margin="0"
+                                                Command="{Binding DataContext.IncrementCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                Visibility="{Binding DataContext.CanEditLines, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
+                                        <TextBlock DockPanel.Dock="Left" Text="{Binding UnitPriceText}" Style="{StaticResource Muted}" FontSize="10.5" Margin="6,0,0,0" VerticalAlignment="Center" />
+
+                                        <!-- Remove sits flush at the far right edge; Discount/Comp/Price are rarer,
+                                             supervisor-gated actions collapsed behind one icon toggle just to its left,
+                                             shown at all only when the signed-in staff member has one of those permissions. -->
+                                        <Button DockPanel.Dock="Right" Content="&#x2715;" Style="{StaticResource MiniButton}" Padding="0" FontSize="11" Width="20" Height="20" Foreground="{StaticResource DangerBrush}" Margin="0"
                                                 Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                                 Visibility="{Binding DataContext.CanEditLines, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
-                                    </StackPanel>
-                                </Grid>
+                                        <ToggleButton DockPanel.Dock="Right" x:Name="MoreToggle" Content="&#x22EF;" Padding="0" FontSize="13" Width="20" Height="20" Margin="0,0,4,0"
+                                                      HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                                      Foreground="{StaticResource TextBrush}" Background="{StaticResource SurfaceBrush}"
+                                                      BorderBrush="{StaticResource BorderLineBrush}" BorderThickness="1" Cursor="Hand"
+                                                      Visibility="{Binding DataContext.HasLineAdjustmentOptions, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
+                                        <Popup PlacementTarget="{Binding ElementName=MoreToggle}" Placement="Bottom"
+                                               IsOpen="{Binding IsChecked, ElementName=MoreToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True">
+                                            <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderLineBrush}" BorderThickness="1" CornerRadius="6" Padding="4">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button Content="Discount" Style="{StaticResource MiniButton}" Padding="6,2" FontSize="10.5" MinHeight="22" Margin="0,0,3,0"
+                                                            Command="{Binding DataContext.DiscountCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                            Visibility="{Binding DataContext.CanDiscount, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
+                                                    <Button Content="Comp" Style="{StaticResource MiniButton}" Padding="6,2" FontSize="10.5" MinHeight="22" Margin="0,0,3,0"
+                                                            Command="{Binding DataContext.CompCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                            Visibility="{Binding DataContext.CanComp, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
+                                                    <Button Content="Price" Style="{StaticResource MiniButton}" Padding="6,2" FontSize="10.5" MinHeight="22" Margin="0"
+                                                            Command="{Binding DataContext.PriceOverrideCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                            Visibility="{Binding DataContext.CanPriceOverride, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Popup>
+                                    </DockPanel>
+                                </StackPanel>
                             </Border>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <StackPanel Grid.Row="3" Margin="0,8,0,0">
-                    <DockPanel><TextBlock Text="Subtotal" Style="{StaticResource Muted}" /><TextBlock Text="{Binding SubtotalText}" HorizontalAlignment="Right" /></DockPanel>
-                    <DockPanel><TextBlock Text="Discount" Style="{StaticResource Muted}" /><TextBlock Text="{Binding DiscountText}" HorizontalAlignment="Right" /></DockPanel>
-                    <DockPanel><TextBlock Text="Tax" Style="{StaticResource Muted}" /><TextBlock Text="{Binding TaxText}" HorizontalAlignment="Right" /></DockPanel>
-                    <DockPanel><TextBlock Text="TOTAL" FontSize="22" FontWeight="Bold" /><TextBlock Text="{Binding TotalText}" FontSize="22" FontWeight="Bold" HorizontalAlignment="Right" TextWrapping="Wrap" /></DockPanel>
-                    <TextBlock Text="{Binding BalanceText}" HorizontalAlignment="Right" Foreground="{StaticResource WarnBrush}" />
+                <!-- Totals: small, so this never competes with the cart lines above it for space. -->
+                <StackPanel Grid.Row="3" Margin="0,6,0,0">
+                    <DockPanel><TextBlock Text="Subtotal" Style="{StaticResource Muted}" FontSize="12" /><TextBlock Text="{Binding SubtotalText}" FontSize="12" HorizontalAlignment="Right" /></DockPanel>
+                    <DockPanel><TextBlock Text="Discount" Style="{StaticResource Muted}" FontSize="12" /><TextBlock Text="{Binding DiscountText}" FontSize="12" HorizontalAlignment="Right" /></DockPanel>
+                    <DockPanel><TextBlock Text="Tax" Style="{StaticResource Muted}" FontSize="12" /><TextBlock Text="{Binding TaxText}" FontSize="12" HorizontalAlignment="Right" /></DockPanel>
+                    <DockPanel Margin="0,3,0,0"><TextBlock Text="TOTAL" FontSize="17" FontWeight="Bold" /><TextBlock Text="{Binding TotalText}" FontSize="17" FontWeight="Bold" HorizontalAlignment="Right" TextWrapping="Wrap" /></DockPanel>
+                    <TextBlock Text="{Binding BalanceText}" FontSize="12" HorizontalAlignment="Right" Foreground="{StaticResource WarnBrush}" />
                 </StackPanel>
 
-                <WrapPanel Grid.Row="4" Margin="0,8,0,0">
+                <!-- Primary action, right under the total: Pay (plus Settle tab when relevant) is what a cashier
+                     reaches for most, so it sits closest to TOTAL instead of being buried under the utility row.
+                     A DockPanel (not a 2-column Grid) so Pay fills the full width when there's no tab to settle -
+                     a Grid column keeps its share of the width reserved even once its button collapses. -->
+                <DockPanel Grid.Row="4" Margin="0,8,0,0" LastChildFill="True">
+                    <Button DockPanel.Dock="Left" Style="{StaticResource PrimaryButton}" Content="Settle tab" MinHeight="44" FontSize="15" Width="160" Margin="0,0,6,0"
+                            Command="{Binding SettleTabCommand}" Visibility="{Binding IsTabTarget, Converter={StaticResource BoolToVis}}" />
+                    <Button Style="{StaticResource PrimaryButton}" Content="Pay" MinHeight="44" FontSize="15"
+                            Command="{Binding PayCommand}" />
+                </DockPanel>
+
+                <!-- Secondary/utility actions, Void order included: every button the same width regardless of its
+                     own text, wrapping into rows of three with a visible gap between rows. -->
+                <WrapPanel Grid.Row="5" Margin="0,8,0,0">
+                    <WrapPanel.Resources>
+                        <Style TargetType="Button" BasedOn="{StaticResource MiniButton}">
+                            <Setter Property="Width" Value="94" />
+                            <Setter Property="Margin" Value="0,0,6,6" />
+                        </Style>
+                    </WrapPanel.Resources>
                     <Button Content="Send" Command="{Binding SendCommand}" />
                     <Button Content="Mark served" Command="{Binding ServeCommand}" />
                     <Button Content="Print bill" Command="{Binding PrintBillCommand}" />
                     <Button Content="Reopen bill" Command="{Binding ReopenBillCommand}" Visibility="{Binding IsBilled, Converter={StaticResource BoolToVis}}" />
-                    <Button Style="{StaticResource PrimaryButton}" Content="Pay" Command="{Binding PayCommand}" MinWidth="110" />
-                    <Button Style="{StaticResource PrimaryButton}" Content="Settle tab" Command="{Binding SettleTabCommand}"
-                            Visibility="{Binding IsTabTarget, Converter={StaticResource BoolToVis}}" />
-                    <Button Style="{StaticResource DangerButton}" Content="Void order" Command="{Binding VoidCommand}" />
                     <Button Content="New order" Command="{Binding NewOrderCommand}" />
                     <Button Content="Refresh" Command="{Binding RefreshCommand}" />
+                    <Button Style="{StaticResource DangerButton}" Content="Void order" Width="94" Margin="0,0,6,6" MinHeight="28" FontSize="12" Padding="8,3" Command="{Binding VoidCommand}" />
                 </WrapPanel>
             </Grid>
         </Border>

@@ -67,7 +67,7 @@ public partial class App : Application
         catch (Exception ex)
         {
             CrashLog.Write(ex);
-            MessageBox.Show("The POS could not start:\n\n" + ex.Message + "\n\nSee the log in %LOCALAPPDATA%\\R007Pos\\logs.", "007 Resort & Spa POS", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show("The POS could not start:\n\n" + ex.Message + "\n\nSee the log in %LOCALAPPDATA%\\R007Pos\\logs.", "SERI Resort POS", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
     }

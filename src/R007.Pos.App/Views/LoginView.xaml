@@ -6,7 +6,25 @@
              xmlns:vm="clr-namespace:R007.Pos.ViewModels.Screens;assembly=R007.Pos.ViewModels"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:LoginViewModel}">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Brand panel: same primaryContainer look as the mobile app's login screen, so this terminal reads as
+             the same product a waiter just handed a shift off from on a tablet. -->
+        <Border Grid.Column="0" Background="{StaticResource AccentContainerBrush}">
+            <StackPanel VerticalAlignment="Center" Margin="40">
+                <TextBlock Text="&#xE1FB;" FontFamily="Segoe MDL2 Assets" FontSize="56" Foreground="{StaticResource OnAccentContainerBrush}" />
+                <TextBlock Text="SERI Resort" FontSize="30" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainerBrush}" Margin="0,16,0,4" />
+                <TextBlock Text="POS terminal" FontSize="20" Foreground="{StaticResource OnAccentContainerBrush}" />
+                <TextBlock Text="{Binding FacilityName}" FontSize="18" Foreground="{StaticResource OnAccentContainerBrush}" Margin="0,4,0,0"
+                           Visibility="{Binding FacilityName, Converter={StaticResource NullToVis}}" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="420" HorizontalAlignment="Center" Margin="0,30">
             <TextBlock Style="{StaticResource Heading}" Text="Sign in" HorizontalAlignment="Center" />
             <TextBlock Text="{Binding Prompt}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,16" />
@@ -61,5 +79,6 @@
             <TextBlock Style="{StaticResource Muted}" Text="{Binding DemoHint}" Foreground="{StaticResource WarnBrush}" Margin="0,16,0,0"
                        Visibility="{Binding DemoHint, Converter={StaticResource NullToVis}}" />
         </StackPanel>
-    </ScrollViewer>
+        </ScrollViewer>
+    </Grid>
 </UserControl>

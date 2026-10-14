@@ -23,7 +23,7 @@ public sealed class MockOptions
 public sealed record RecordedRequest(string Method, string Path, string Query, IReadOnlyDictionary<string, string> Headers, string Body);
 
 /// <summary>
-/// An in-memory stand-in for the 007 Resort &amp; Spa API, implemented as an <see cref="HttpMessageHandler"/> so the
+/// An in-memory stand-in for the SERI Resort API, implemented as an <see cref="HttpMessageHandler"/> so the
 /// <em>entire</em> real client stack (typed client, retries, auth refresh, offline replay) runs against it in demo mode
 /// (<c>R007_MOCK=true</c>) and in tests. It follows <c>api/openapi/v1.yaml</c>: bearer + <c>X-Device-Token</c>,
 /// <c>Idempotency-Key</c> required on mutations (replays return the original response), <c>If-Match</c> on aggregates

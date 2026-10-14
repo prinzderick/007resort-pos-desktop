@@ -1,3 +1,4 @@
+using R007.Pos.Core;
 using R007.Pos.Core.Api;
 using R007.Pos.Core.Offline;
 
@@ -75,6 +76,7 @@ public abstract class ScreenViewModel : ObservableObject
         ApiException api => api.UserMessage,
         ApiUnavailableException => "Cannot reach the server. Check the network and try again.",
         OfflineQueueBlockedException blocked => blocked.Message,
+        OperatorException operatorMessage => operatorMessage.Message,
         OperationCanceledException => "Cancelled.",
         _ => "Something went wrong. Please try again; if it persists, tell a supervisor.",
     };
@@ -92,6 +94,7 @@ public abstract class ScreenViewModel : ObservableObject
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             Error = Describe(ex);
+            UnexpectedErrorLog.Record(ex);
             return false;
         }
         finally
@@ -100,7 +103,11 @@ public abstract class ScreenViewModel : ObservableObject
         }
     }
 
-    protected void SetError(Exception ex) => Error = Describe(ex);
+    protected void SetError(Exception ex)
+    {
+        Error = Describe(ex);
+        UnexpectedErrorLog.Record(ex);
+    }
 }
 
 /// <summary>A dialog shown over the current screen. <see cref="Closed"/> completes when it closes.</summary>

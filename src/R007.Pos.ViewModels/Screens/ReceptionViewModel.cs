@@ -62,6 +62,22 @@ public sealed class ReceptionViewModel : ScreenViewModel
         PreviousDayCommand = new AsyncRelayCommand(() => ShiftDayAsync(-1), null, SetError);
         IncreasePartyCommand = new RelayCommand(() => PartySize = Math.Min(50, PartySize + 1));
         DecreasePartyCommand = new RelayCommand(() => PartySize = Math.Max(1, PartySize - 1));
+        // CanHold/CanPay read _ctx.Features live, but nothing re-queries the commands when a feature flips true
+        // after this screen is already up (e.g. Features was still loading when Reception first showed) - a
+        // RelayCommand's CanExecuteChanged is never wired to WPF's own requery like a RoutedCommand's is.
+        _ctx.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(PosContext.Features))
+            {
+                HoldCommand.RaiseCanExecuteChanged();
+                PayCommand.RaiseCanExecuteChanged();
+                LookupMemberCommand.RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(CanHold));
+                OnPropertyChanged(nameof(CanPay));
+                OnPropertyChanged(nameof(HoldBlockedReason));
+                OnPropertyChanged(nameof(HasHoldBlockedReason));
+            }
+        };
     }
 
     public ObservableCollection<BookableResource> Resources { get; } = [];
@@ -80,6 +96,10 @@ public sealed class ReceptionViewModel : ScreenViewModel
                 Slot = null;
                 Slots.Clear();
                 LoadSlotsCommand.RaiseCanExecuteChanged();
+                HoldCommand.RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(CanHold));
+                OnPropertyChanged(nameof(HoldBlockedReason));
+                OnPropertyChanged(nameof(HasHoldBlockedReason));
                 if (value is not null)
                 {
                     _ = RunAsync(LoadSlotsAsync);
@@ -97,6 +117,8 @@ public sealed class ReceptionViewModel : ScreenViewModel
             {
                 HoldCommand.RaiseCanExecuteChanged();
                 OnPropertyChanged(nameof(CanHold));
+                OnPropertyChanged(nameof(HoldBlockedReason));
+                OnPropertyChanged(nameof(HasHoldBlockedReason));
             }
         }
     }
@@ -140,6 +162,8 @@ public sealed class ReceptionViewModel : ScreenViewModel
                 OnPropertyChanged(nameof(BookingText));
                 OnPropertyChanged(nameof(CanPay));
                 OnPropertyChanged(nameof(CanHold));
+                OnPropertyChanged(nameof(HoldBlockedReason));
+                OnPropertyChanged(nameof(HasHoldBlockedReason));
                 HoldCommand.RaiseCanExecuteChanged();
                 PayCommand.RaiseCanExecuteChanged();
                 CancelHoldCommand.RaiseCanExecuteChanged();
@@ -156,6 +180,18 @@ public sealed class ReceptionViewModel : ScreenViewModel
         : $"{_booking.Number}: {_booking.ResourceName} {_booking.Start.ToOffset(TimeSpan.FromHours(1)):HH:mm}-{_booking.End.ToOffset(TimeSpan.FromHours(1)):HH:mm}, {MoneyFormat.Display(_balanceDue)} to pay";
 
     public bool CanHold => Booking is null && Resource is not null && Slot is { CanBook: true } && _ctx.Features.CanBook;
+
+    /// <summary>Why "Hold this slot" is disabled right now - holding never needs a linked member, just a resource
+    /// and an available slot, but a cashier staring at a greyed-out button with no explanation has no way to tell
+    /// that apart from an actual permissions or availability problem.</summary>
+    public string HoldBlockedReason => Booking is not null ? string.Empty
+        : !_ctx.Features.CanBook ? "This station is not set up to take bookings."
+        : Resource is null ? "Pick what to book on the left."
+        : Slot is null ? "Pick a time slot."
+        : Slot.CanBook ? string.Empty
+        : "That slot is full - pick another.";
+
+    public bool HasHoldBlockedReason => !string.IsNullOrEmpty(HoldBlockedReason);
 
     public bool CanPay => Booking is not null && _ctx.Features.CanPay;
 
@@ -197,12 +233,21 @@ public sealed class ReceptionViewModel : ScreenViewModel
 
     private async Task LoadSlotsAsync()
     {
-        if (Resource is null)
+        var resource = Resource;
+        if (resource is null)
         {
             return;
         }
 
-        var availability = await _ctx.Api.GetAvailabilityAsync(Resource.Id, _day, _day.AddDays(1)).ConfigureAwait(true);
+        var availability = await _ctx.Api.GetAvailabilityAsync(resource.Id, _day, _day.AddDays(1)).ConfigureAwait(true);
+        if (!ReferenceEquals(Resource, resource))
+        {
+            // The resource (or day) changed again while this request was in flight: a second, newer LoadSlotsAsync
+            // is already running for the current selection, so applying this stale response would show slots that
+            // don't belong to what's selected now - and Slot/Hold would silently stay out of sync with the list.
+            return;
+        }
+
         Slots.Clear();
         foreach (var s in availability.Slots)
         {

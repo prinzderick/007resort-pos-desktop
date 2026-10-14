@@ -46,6 +46,11 @@ public sealed class TabRow(Tab tab, string? tableLabel, IReadOnlyList<OrderChip>
 /// <summary>Tables and open tabs (Restaurant / Indoor Club style): open a tab, add rounds of orders, settle on exit.</summary>
 public sealed class TablesViewModel : ScreenViewModel
 {
+    private static readonly string[] OpenOrderStatuses =
+    [
+        OrderStatuses.Draft, OrderStatuses.Sent, OrderStatuses.InPreparation, OrderStatuses.Ready, OrderStatuses.Served,
+    ];
+
     private readonly PosContext _ctx;
     private readonly INavigator _nav;
 
@@ -98,7 +103,9 @@ public sealed class TablesViewModel : ScreenViewModel
         IReadOnlyList<OrderSummary> open = [];
         try
         {
-            open = (await _ctx.Api.ListOrdersAsync(_ctx.FacilityId, "DRAFT,SENT,IN_PREPARATION,READY,SERVED", null, null, 100).ConfigureAwait(true)).Items;
+            // One request per status, not a comma-joined filter[status]: the contract only documents a single-value
+            // filter and the combined list silently matched nothing on the real node.
+            open = await _ctx.Orders.ListOpenOrdersAsync(_ctx.FacilityId, OpenOrderStatuses).ConfigureAwait(true);
         }
         catch (ApiException)
         {

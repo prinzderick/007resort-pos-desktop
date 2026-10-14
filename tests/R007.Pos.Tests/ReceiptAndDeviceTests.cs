@@ -16,7 +16,7 @@ public sealed class ReceiptAndDeviceTests
         "R-5001",
         Guid.Parse("00000000-0000-7000-8000-000000000101"),
         "Restaurant",
-        "007 Resort & Spa",
+        "SERI Resort",
         "Bayelsa State, Nigeria",
         new DateTimeOffset(2026, 9, 23, 13, 5, 0, TimeSpan.Zero),
         "Amaka Cashier",
@@ -36,10 +36,10 @@ public sealed class ReceiptAndDeviceTests
         null,
         withQr ? "ENT.ABC123" : null,
         0,
-        "Thank you for choosing 007 Resort & Spa");
+        "Thank you for choosing SERI Resort");
 
     private const string ExpectedReceipt = """
-                007 Resort & Spa
+                     SERI Resort
                            Restaurant
                      Bayelsa State, Nigeria
         ------------------------------------------------
@@ -60,7 +60,7 @@ public sealed class ReceiptAndDeviceTests
         Cash                                   N6,500.00
         Change                                   N500.00
         ------------------------------------------------
-            Thank you for choosing 007 Resort & Spa
+               Thank you for choosing SERI Resort
         [drawer kick]
         [cut]
 

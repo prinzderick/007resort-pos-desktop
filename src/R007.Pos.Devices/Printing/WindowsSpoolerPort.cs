@@ -52,7 +52,7 @@ public sealed class WindowsSpoolerPort(string printerName) : IRawPrinterPort
 
         try
         {
-            var doc = new NativeMethods.DocInfo { DocName = "007 Resort POS receipt", OutputFile = null, DataType = "RAW" };
+            var doc = new NativeMethods.DocInfo { DocName = "SERI Resort POS receipt", OutputFile = null, DataType = "RAW" };
             if (NativeMethods.StartDocPrinter(handle, 1, doc) == 0)
             {
                 throw new IOException($"StartDocPrinter failed (error {Marshal.GetLastWin32Error()}).");

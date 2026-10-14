@@ -14,6 +14,18 @@ public sealed class PosOptions
     /// <summary>Base URL of the on-site API used as the default in the setup screen (e.g. <c>http://localhost:5080</c>).</summary>
     public Uri ApiBaseUrl { get; set; } = new("http://localhost:5080");
 
+    /// <summary>Quick pick in the hidden Connection dialog: the online (cloud) server, e.g. <c>https://api.example.com</c>. Empty = not offered.</summary>
+    public Uri? OnlineUrl { get; set; }
+
+    /// <summary>Quick pick in the hidden Connection dialog: the property server on this network, e.g. <c>http://192.168.1.75</c>. Empty = not offered.</summary>
+    public Uri? LocalUrl { get; set; }
+
+    /// <summary>
+    /// PIN asked by the hidden Connection dialog (click the title 7 times). Empty = none. This only stops accidental
+    /// switches: it is local configuration, not a security boundary.
+    /// </summary>
+    public string? ConnectionPin { get; set; }
+
     /// <summary>Folder for the encrypted device identity and emergency queue. Empty = <c>%LOCALAPPDATA%\R007Pos</c>.</summary>
     public string? DataDirectory { get; set; }
 

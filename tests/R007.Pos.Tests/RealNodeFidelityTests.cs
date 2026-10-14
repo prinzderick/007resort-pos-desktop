@@ -169,10 +169,10 @@ public sealed class RealNodeFidelityTests
     public void Receipt_PartPayment_ShowsTenderedChangeAndBalanceDue_AndTheNodeDuplicateMark()
     {
         var receipt = new Receipt(
-            Guid.NewGuid(), "RCP-1", null, "Main Reception", "007 Resort & Spa", "", DateTimeOffset.UtcNow, "Ngozi", ["R-1"], null,
+            Guid.NewGuid(), "RCP-1", null, "Main Reception", "SERI Resort", "", DateTimeOffset.UtcNow, "Ngozi", ["R-1"], null,
             [new ReceiptItem("Sports drink", 5, 700m, 3500m)], 3500m, 0m, 0m, 3500m, "NGN",
             [new ReceiptTender(TenderTypes.Cash, 1000m, null, 2000m)], 1000m, null, null, 1, "Thanks",
-            AmountPaid: 1000m, BalanceDue: 2500m, Duplicate: true, BusinessName: "007 Resort & Spa (demo organization)", Terminal: "Till 1");
+            AmountPaid: 1000m, BalanceDue: 2500m, Duplicate: true, BusinessName: "SERI Resort (demo organization)", Terminal: "Till 1");
 
         var text = R007.Pos.Devices.Printing.EscPosRenderer.RenderText(ReceiptDocumentBuilder.Build(receipt));
 

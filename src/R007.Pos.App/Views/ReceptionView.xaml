@@ -9,9 +9,9 @@
              d:DataContext="{d:DesignInstance Type=vm:ReceptionViewModel}">
     <Grid Margin="6">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="240" />
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="400" />
+            <ColumnDefinition Width="300" />
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" Style="{StaticResource Card}">
@@ -25,27 +25,27 @@
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
                     <Button Content="&lt;" Command="{Binding PreviousDayCommand}" MinWidth="56" />
-                    <TextBlock Text="{Binding DayText}" FontSize="20" FontWeight="Bold" Margin="12,0" />
+                    <TextBlock Text="{Binding DayText}" FontSize="20" FontWeight="Bold" Margin="12,0" VerticalAlignment="Center" />
                     <Button Content="&gt;" Command="{Binding NextDayCommand}" MinWidth="56" />
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,8">
-                    <TextBlock Text="People:" Margin="0,0,8,0" />
+                    <TextBlock Text="People:" Margin="0,0,8,0" VerticalAlignment="Center" />
                     <Button Content="-" Command="{Binding DecreasePartyCommand}" MinWidth="48" />
-                    <TextBlock Text="{Binding PartySize}" FontSize="20" FontWeight="Bold" Margin="8,0" />
+                    <TextBlock Text="{Binding PartySize}" FontSize="20" FontWeight="Bold" Margin="8,0" VerticalAlignment="Center" />
                     <Button Content="+" Command="{Binding IncreasePartyCommand}" MinWidth="48" />
                 </StackPanel>
                 <ListBox ItemsSource="{Binding Slots}" SelectedItem="{Binding Slot}" HorizontalContentAlignment="Stretch">
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:SlotRow}">
-                            <Grid Margin="4,6">
+                            <Grid Margin="6,10">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="150" />
-                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="160" />
+                                    <ColumnDefinition Width="140" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="{Binding TimeText}" FontSize="18" FontWeight="SemiBold" />
-                                <TextBlock Grid.Column="1" Text="{Binding Availability}" />
-                                <TextBlock Grid.Column="2" Text="{Binding PriceText}" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Right" />
+                                <TextBlock Grid.Column="1" Text="{Binding Availability}" FontSize="16" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="{Binding PriceText}" FontSize="16" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -59,10 +59,14 @@
                     <TextBlock Style="{StaticResource Heading}" Text="Booking" />
                     <TextBlock Text="Customer name" Style="{StaticResource Muted}" />
                     <TextBox Text="{Binding CustomerName, UpdateSourceTrigger=PropertyChanged}" />
+                    <!-- Holding never needs a member record - a name alone is enough for a walk-in with no account. -->
+                    <TextBlock Text="No member? Just type a name above - linking one is optional." Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,8" />
                     <Button Content="Find a member" Command="{Binding LookupMemberCommand}" HorizontalAlignment="Left" />
                     <TextBlock Text="{Binding MemberText}" Style="{StaticResource Muted}" />
 
                     <Button Style="{StaticResource PrimaryButton}" Content="Hold this slot" Command="{Binding HoldCommand}" Margin="4,12,4,4" />
+                    <TextBlock Text="{Binding HoldBlockedReason}" Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="4,0,4,4"
+                               Visibility="{Binding HasHoldBlockedReason, Converter={StaticResource BoolToVis}}" />
 
                     <StackPanel Visibility="{Binding HasBooking, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="{Binding BookingText}" TextWrapping="Wrap" FontWeight="SemiBold" Foreground="{StaticResource WarnBrush}" Margin="0,8" />

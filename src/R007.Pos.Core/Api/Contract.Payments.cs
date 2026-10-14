@@ -109,6 +109,9 @@ public sealed record ReceiptItem(string Name, int Quantity, decimal UnitPrice, d
 
 public sealed record ReceiptTender(string TenderType, decimal Amount, string? Reference, decimal? Tendered = null);
 
+/// <summary>A queued "send this receipt to a printer" request (waiter-only flow: a tablet asked, a POS terminal prints).</summary>
+public sealed record PrintJob(Guid Id, Guid ReceiptId, int Copies, string Status);
+
 /// <summary>Structured receipt from the API. The POS lays it out for the 80 mm printer; it does not compute any amount.</summary>
 public sealed record Receipt(
     Guid Id,

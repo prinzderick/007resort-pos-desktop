@@ -4,13 +4,16 @@ using R007.Pos.ViewModels.Infrastructure;
 
 namespace R007.Pos.ViewModels.Screens;
 
-public sealed class NavItem(string title, ScreenViewModel screen) : ObservableObject
+public sealed class NavItem(string title, ScreenViewModel screen, string icon) : ObservableObject
 {
     private string? _badge;
 
     public string Title { get; } = title;
 
     public ScreenViewModel Screen { get; } = screen;
+
+    /// <summary>Segoe MDL2 Assets glyph for the rail icon tile.</summary>
+    public string Icon { get; } = icon;
 
     public string? Badge
     {
@@ -26,11 +29,25 @@ public sealed class NavItem(string title, ScreenViewModel screen) : ObservableOb
 public sealed class MainViewModel : ScreenViewModel
 {
     private readonly PosContext _ctx;
+    private readonly INavigator _nav;
     private NavItem? _selected;
 
     public MainViewModel(PosContext ctx, INavigator nav)
     {
         _ctx = ctx;
+        _nav = nav;
+        OpenOrdersCommand = new AsyncRelayCommand(OpenOrdersAsync, () => _ctx.Features.CanSell, SetError);
+        // CanExecute is evaluated once at construction, before the facility (and Features.CanSell) has loaded,
+        // and this command's CanExecuteChanged is never wired to CommandManager's automatic requery - unlike a
+        // RoutedCommand it won't silently re-check itself on the next UI event. Without this, the button stays
+        // disabled forever once CanSell starts false, even after it becomes true.
+        _ctx.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(PosContext.Features))
+            {
+                OpenOrdersCommand.RaiseCanExecuteChanged();
+            }
+        };
         Sell = new SellViewModel(ctx, nav);
         Tables = new TablesViewModel(ctx, nav);
         Reception = new ReceptionViewModel(ctx, nav);
@@ -98,6 +115,9 @@ public sealed class MainViewModel : ScreenViewModel
 
     public AsyncRelayCommand SelectCommand { get; }
 
+    /// <summary>Top-bar hamburger: every open/draft order at this facility, not scoped to the current table/tab/counter.</summary>
+    public AsyncRelayCommand OpenOrdersCommand { get; }
+
     public NavItem? Selected
     {
         get => _selected;
@@ -145,45 +165,45 @@ public sealed class MainViewModel : ScreenViewModel
         Items.Clear();
         if (f.CanSell)
         {
-            Items.Add(new NavItem("Sell", Sell));
+            Items.Add(new NavItem("Sell", Sell, ""));
         }
 
         if (f.ShowTables)
         {
-            Items.Add(new NavItem("Tables & tabs", Tables));
+            Items.Add(new NavItem("Tables & tabs", Tables, ""));
         }
 
         if (f.CanBook)
         {
-            Items.Add(new NavItem("Reception", Reception));
+            Items.Add(new NavItem("Reception", Reception, ""));
         }
 
         if (f.ShowCollections)
         {
-            Items.Add(new NavItem("Collected by waiters", Collections));
+            Items.Add(new NavItem("Collected by waiters", Collections, ""));
         }
 
         if (f.ShowHandoverDesk)
         {
-            Items.Add(new NavItem("Cash handover", Handovers));
+            Items.Add(new NavItem("Cash handover", Handovers, ""));
         }
 
         if (f.CanDecideApprovals)
         {
-            Items.Add(new NavItem("Approvals", Approvals));
+            Items.Add(new NavItem("Approvals", Approvals, ""));
         }
 
         if (f.CanManageCashSession)
         {
-            Items.Add(new NavItem("Cash session", Cash));
+            Items.Add(new NavItem("Cash session", Cash, ""));
         }
 
         if (f.CanViewHistory)
         {
-            Items.Add(new NavItem("History", History));
+            Items.Add(new NavItem("History", History, ""));
         }
 
-        Items.Add(new NavItem("Queue", Queue));
+        Items.Add(new NavItem("Queue", Queue, ""));
         OnPropertyChanged(nameof(StaffName));
         OnPropertyChanged(nameof(FacilityName));
     }
@@ -198,6 +218,25 @@ public sealed class MainViewModel : ScreenViewModel
         catch (Exception ex) when (ex is ApiException or ApiUnavailableException)
         {
             SetError(ex);
+        }
+    }
+
+    private async Task OpenOrdersAsync()
+    {
+        var modal = new OpenOrdersViewModel(_ctx);
+        // ShowModalAsync only displays the dialog - it never calls ActivateAsync (other modals here are
+        // triggered by typing, not an initial load), so the list has to be loaded before the dialog opens
+        // or it would show "nothing open" for the split second the fetch is still in flight.
+        await modal.ActivateAsync().ConfigureAwait(true);
+        await _nav.ShowModalAsync(modal).ConfigureAwait(true);
+        if (modal.Picked is { } order)
+        {
+            await Sell.LoadOrderAsync(order).ConfigureAwait(true);
+            var sell = Items.FirstOrDefault(i => ReferenceEquals(i.Screen, Sell));
+            if (sell is not null)
+            {
+                await SelectAsync(sell).ConfigureAwait(true);
+            }
         }
     }
 

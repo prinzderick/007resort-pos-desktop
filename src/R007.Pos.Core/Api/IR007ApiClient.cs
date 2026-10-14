@@ -1,7 +1,7 @@
 namespace R007.Pos.Core.Api;
 
 /// <summary>
-/// Typed client for the 007 Resort &amp; Spa API (contract: <c>api/openapi/v1.yaml</c>). The POS is a thin client:
+/// Typed client for the SERI Resort API (contract: <c>api/openapi/v1.yaml</c>). The POS is a thin client:
 /// every business decision (pricing, tax, permissions, stock, entitlements) is made by the API.
 /// <para>Conventions: every mutating call takes an explicit <c>idempotencyKey</c> that the caller generates once per
 /// user intent (<see cref="IdempotencyKeys"/>) and reuses if that intent is retried. Aggregates with a
@@ -103,6 +103,12 @@ public interface IR007ApiClient
     Task<Receipt> GetReceiptAsync(Guid receiptId, bool reprint = false, CancellationToken cancellationToken = default);
 
     Task<Receipt> GetOrderReceiptAsync(Guid orderId, CancellationToken cancellationToken = default);
+
+    /// <summary>Receipts a tablet asked to print at this facility (waiter-only flow). Needs <c>receipt.print</c> or <c>receipt.reprint</c>.</summary>
+    Task<IReadOnlyList<PrintJob>> ListQueuedPrintJobsAsync(Guid facilityId, CancellationToken cancellationToken = default);
+
+    /// <summary>Tells the server the job was printed here so no other terminal prints it again.</summary>
+    Task MarkPrintJobPrintedAsync(Guid jobId, string idempotencyKey, CancellationToken cancellationToken = default);
 
     // Bills & waiter collections (cashier / supervisor side) --------------------------------------------------
     /// <summary>Prints (or reprints) the pre-bill and freezes the order. Needs <c>bill.print</c>; a reprint after a cancelled bill needs a supervisor (step-up token).</summary>
